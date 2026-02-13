@@ -34,7 +34,7 @@ public class AppNetManager : MonoBehaviour
         }
     }
 
-    private void HandleClientDisconnected(ulong clientId)
+    private void HandleClientConnected(ulong clientId)
     {
         Debug.Log($"[AppNetManager] Connected Player => ID: {clientId}");
 
@@ -45,7 +45,7 @@ public class AppNetManager : MonoBehaviour
         }
     }
 
-    private void HandleClientConnected(ulong clientId)
+    private void HandleClientDisconnected(ulong clientId)
     {
         Debug.Log($"[AppNetManager] Disconnected Player => ID: {clientId}");
 
