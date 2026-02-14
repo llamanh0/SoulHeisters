@@ -3,11 +3,13 @@ using UnityEngine.InputSystem;
 
 public class PlayerInputHandler : MonoBehaviour
 {
-    // (Encapsulation)
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    public bool FireInput { get; private set; }
     public bool IsJumping { get; private set; }
     public bool IsSprinting { get; private set; }
+    public bool ChangeCameraInput { get; private set; }
+
 
     private PlayerInputActions _inputActions;
 
@@ -25,6 +27,10 @@ public class PlayerInputHandler : MonoBehaviour
             _inputActions.Player.Look.performed += i => LookInput = i.ReadValue<Vector2>();
             _inputActions.Player.Look.canceled += i => LookInput = Vector2.zero;
 
+            // Fire
+            _inputActions.Player.Fire.performed += i => FireInput = true;
+            _inputActions.Player.Fire.canceled += i => FireInput = false;
+
             // Space
             _inputActions.Player.Jump.performed += i => IsJumping = true;
             _inputActions.Player.Jump.canceled += i => IsJumping = false;
@@ -32,6 +38,10 @@ public class PlayerInputHandler : MonoBehaviour
             // Shift
             _inputActions.Player.Sprint.performed += i => IsSprinting = true;
             _inputActions.Player.Sprint.canceled += i => IsSprinting = false;
+
+            // Change Camera
+            _inputActions.Player.ChangeCamera.performed += i => ChangeCameraInput = true;
+            _inputActions.Player.ChangeCamera.canceled += i => ChangeCameraInput = false;
         }
 
         _inputActions.Enable();

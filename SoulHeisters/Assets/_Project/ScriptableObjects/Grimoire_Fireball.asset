@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e86ea626525ea4b40af0b731b1d2eac9, type: 3}
+  m_Name: Grimoire_Fireball
+  m_EditorClassIdentifier: 
+  spellName: Fireball
+  icon: {fileID: 0}
+  cooldown: 0.2
+  damage: 15
+  lifetime: 3
+  projectilePrefab: {fileID: 412427263814804400, guid: 08e4017f8490d9e45ae9964f9b9da1e8,
+    type: 3}
+  speed: 40
