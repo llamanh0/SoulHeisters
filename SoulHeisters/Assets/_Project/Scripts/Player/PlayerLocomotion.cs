@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerInputHandler))]
 public class PlayerLocomotion : NetworkBehaviour
 {
+    [Header("References")]
+    [SerializeField] private Transform playerVisuals;
+
     [Header("Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
@@ -81,7 +84,6 @@ public class PlayerLocomotion : NetworkBehaviour
 
         camForward.y = 0;
         camRight.y = 0;
-
         camForward.Normalize();
         camRight.Normalize();
 
@@ -90,7 +92,7 @@ public class PlayerLocomotion : NetworkBehaviour
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
@@ -103,7 +105,7 @@ public class PlayerLocomotion : NetworkBehaviour
 
         if (_isGrounded && _playerVelocity.y < 0)
         {
-            _playerVelocity.y = -2f; // For stick to ground
+            _playerVelocity.y = -2f;
         }
 
         // Gravity
