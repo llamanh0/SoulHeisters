@@ -42,6 +42,18 @@ public class PlayerInputHandler : MonoBehaviour
             // Change Camera
             _inputActions.Player.ChangeCamera.performed += i => ChangeCameraInput = true;
             _inputActions.Player.ChangeCamera.canceled += i => ChangeCameraInput = false;
+
+            // Press Talk
+            _inputActions.Player.VoiceCommand.started += i =>
+            {
+                if (VoiceCommandManager.Instance != null)
+                    VoiceCommandManager.Instance.StartListening();
+            };
+            _inputActions.Player.VoiceCommand.canceled += i =>
+            {
+                if (VoiceCommandManager.Instance != null)
+                    VoiceCommandManager.Instance.StopListening();
+            };
         }
 
         _inputActions.Enable();

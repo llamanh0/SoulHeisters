@@ -10,7 +10,7 @@ public class PlayerCameraManager : NetworkBehaviour
 
     [Header("Settings")]
     [SerializeField] private Transform cameraRoot;
-    [SerializeField] private Renderer[] playerRenderers; // To hide body in FPS mode
+    [SerializeField] private Renderer[] playerRenderers;
 
     private PlayerInputHandler _input;
     private bool _isFpsMode = false;
@@ -23,7 +23,6 @@ public class PlayerCameraManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // If this is NOT my character, disable cameras immediately
         if (!IsOwner)
         {
             if (tpsCamera) tpsCamera.gameObject.SetActive(false);
@@ -45,7 +44,7 @@ public class PlayerCameraManager : NetworkBehaviour
         if (cam != null)
         {
             cam.Follow = cameraRoot;
-            cam.LookAt = cameraRoot; // Important for rotation sync
+            cam.LookAt = cameraRoot;
         }
     }
 
@@ -58,14 +57,13 @@ public class PlayerCameraManager : NetworkBehaviour
 
     private void HandleCameraToggle()
     {
-        // Check if the button is currently pressed
         if (_input.ChangeCameraInput)
         {
             // Only execute if it wasn't pressed in the previous frame (Edge Detection)
             if (!_wasCameraInputPressed)
             {
                 ToggleCameraMode();
-                _wasCameraInputPressed = true; // Lock untill release
+                _wasCameraInputPressed = true;
             }
         }
         else
@@ -84,7 +82,7 @@ public class PlayerCameraManager : NetworkBehaviour
             // Switch to FPS
             fpsCamera.Priority = 15;
             tpsCamera.Priority = 10;
-            SetBodyVisibility(false); // Hide body (Shadows Only)
+            SetBodyVisibility(false); // Hide body
         }
         else
         {
@@ -97,7 +95,6 @@ public class PlayerCameraManager : NetworkBehaviour
 
     private void SetBodyVisibility(bool isVisible)
     {
-        // We use "ShadowsOnly" instead of disabling renderer so the shadow remains on the ground
         foreach (var rend in playerRenderers)
         {
             rend.shadowCastingMode = isVisible ?
