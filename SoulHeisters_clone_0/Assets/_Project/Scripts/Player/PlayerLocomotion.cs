@@ -20,6 +20,12 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float topClamp = 70.0f;
     [SerializeField] private float bottomClamp = -40.0f;
 
+    private NetworkVariable<float> _netVisualRotationY = new NetworkVariable<float>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
+
     private float _cinemachineTargetPitch;
     private float _cinemachineTargetYaw;
 
@@ -65,10 +71,22 @@ public class PlayerLocomotion : NetworkBehaviour
 
     private void Update()
     {
-        if(!IsOwner) return;
+        if (IsOwner)
+        {
+            HandleMovement();
+            HandleGravity();
+        }
+        else
+        {
+            SyncVisualRotation();
+        }
 
-        HandleMovement();
-        HandleGravity();
+    }
+
+    private void SyncVisualRotation()
+    {
+        Quaternion targetRotation = Quaternion.Euler(0, _netVisualRotationY.Value, 0);
+        playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
     private void HandleMovement()
@@ -92,6 +110,7 @@ public class PlayerLocomotion : NetworkBehaviour
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            _netVisualRotationY.Value = playerVisuals.eulerAngles.y;
         }
 
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
