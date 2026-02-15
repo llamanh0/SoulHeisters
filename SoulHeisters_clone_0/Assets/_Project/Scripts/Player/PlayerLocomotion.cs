@@ -32,8 +32,6 @@ public class PlayerLocomotion : NetworkBehaviour
     private Vector3 _playerVelocity;
     private bool _isGrounded;
 
-
-
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
@@ -61,6 +59,7 @@ public class PlayerLocomotion : NetworkBehaviour
     private void LateUpdate()
     {
         if (!IsOwner) return;
+
         CameraRotation();
     }
 

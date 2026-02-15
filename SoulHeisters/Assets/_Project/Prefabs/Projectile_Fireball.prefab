@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7305045515858116564}
   - component: {fileID: 1783206237665267925}
   - component: {fileID: 8443448280628121815}
-  - component: {fileID: 4009198212162813073}
   - component: {fileID: 6526434686359322665}
   m_Layer: 0
   m_Name: Projectile_Fireball
@@ -129,18 +128,6 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &4009198212162813073
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 412427263814804400}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29be0e4773b8bd4409ba146aec4fc02f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &6526434686359322665
 MonoBehaviour:
   m_ObjectHideFlags: 0

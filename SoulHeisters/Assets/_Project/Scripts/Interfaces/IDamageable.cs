@@ -1,18 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class IDamageable : MonoBehaviour
+public interface IDamageable
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    void TakeDamage(float amount, ulong dealerClientId);
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    float CurrentHealth { get; }
+
+    bool IsDead { get; }
 }

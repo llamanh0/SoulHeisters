@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using Cinemachine;
+using System.Collections;
 
 public class PlayerCameraManager : NetworkBehaviour
 {
@@ -59,7 +60,6 @@ public class PlayerCameraManager : NetworkBehaviour
     {
         if (_input.ChangeCameraInput)
         {
-            // Only execute if it wasn't pressed in the previous frame (Edge Detection)
             if (!_wasCameraInputPressed)
             {
                 ToggleCameraMode();
@@ -82,19 +82,21 @@ public class PlayerCameraManager : NetworkBehaviour
             // Switch to FPS
             fpsCamera.Priority = 15;
             tpsCamera.Priority = 10;
-            SetBodyVisibility(false); // Hide body
+            StartCoroutine(SetBodyVisibility(false)); // Hide body
         }
         else
         {
             // Switch to TPS
             tpsCamera.Priority = 15;
             fpsCamera.Priority = 10;
-            SetBodyVisibility(true); // Show body
+            StartCoroutine(SetBodyVisibility(true)); // Show body
         }
     }
 
-    private void SetBodyVisibility(bool isVisible)
+    
+    IEnumerator SetBodyVisibility(bool isVisible)
     {
+        yield return new WaitForSeconds(0.3f);
         foreach (var rend in playerRenderers)
         {
             rend.shadowCastingMode = isVisible ?
