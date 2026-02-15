@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -8,12 +9,25 @@ public class PlayerCombat : NetworkBehaviour
     [SerializeField] private Transform firePoint;
     [SerializeField] private LayerMask aimColliderMask = new LayerMask();
 
+    [Header("Voice Settings")]
+    [SerializeField] private bool enableVoiceCommands = true;
+
+    private readonly Dictionary<string, string> _voiceKeywordMap = new Dictionary<string, string>
+    {
+        { "fireball", "Fireball" },
+        { "fire", "Fireball" },
+        { "burn", "Fireball" }, // Aliases
+        // { "shield", "Shield" } // Future spells
+    };
+
     [Header("Debug")]
     [SerializeField] private bool showDebugRay = true;
 
     private PlayerInputHandler _input;
     private Camera _mainCamera;
     private float _lastFireTime;
+
+
 
     private void Awake()
     {
@@ -25,7 +39,17 @@ public class PlayerCombat : NetworkBehaviour
         if (IsOwner)
         {
             _mainCamera = Camera.main;
-            if (_mainCamera == null) Debug.LogError("PlayerCombat: Main Camera not found!");
+            if (_mainCamera == null) Debug.LogError("[PlayerCombat] Main Camera not found!");
+
+            VoiceCommandManager.Instance.OnCommandRecognized += ProcessVoiceCommand;
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (IsOwner && VoiceCommandManager.Instance != null)
+        {
+            VoiceCommandManager.Instance.OnCommandRecognized -= ProcessVoiceCommand;
         }
     }
 
@@ -36,6 +60,35 @@ public class PlayerCombat : NetworkBehaviour
         if (_input.FireInput && Time.time >= _lastFireTime + currentGrimoire.cooldown)
         {
             HandleShooting();
+        }
+    }
+
+    private void ProcessVoiceCommand(string rawText)
+    {
+        if (!enableVoiceCommands) return;
+
+        string cleanText = rawText.ToLowerInvariant();
+
+        foreach (var entry in _voiceKeywordMap)
+        {
+            if (cleanText.Contains(entry.Key))
+            {
+                Debug.Log($"[Combat] Voice Trigger: {entry.Value}");
+                CastSpellByName(entry.Value);
+                return;
+            }
+        }
+    }
+
+    private void CastSpellByName(string spellName)
+    {
+        if (currentGrimoire.spellName == spellName)
+        {
+            HandleShooting();
+        }
+        else
+        {
+            Debug.LogWarning("Spell switching not implemented yet, but command received!");
         }
     }
 

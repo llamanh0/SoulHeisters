@@ -10,9 +10,9 @@ public class GrimoireSO : ScriptableObject
     [Header("Stats")]
     public float cooldown = 0.5f;
     public float damage = 10f;
-    public float lifetime = 3f; // Seconds before auto-destroy
+    public float lifetime = 3f;
 
     [Header("Physics")]
-    public GameObject projectilePrefab; // Must have NetworkObject
+    public GameObject projectilePrefab;
     public float speed = 20f;
 }
