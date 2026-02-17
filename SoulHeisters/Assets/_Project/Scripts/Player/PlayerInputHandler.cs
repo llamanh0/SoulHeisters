@@ -4,6 +4,7 @@ public class PlayerInputHandler : MonoBehaviour
 {
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    public bool AimInput { get; private set; }
     public bool FireInput { get; private set; }
     public bool IsJumping { get; private set; }
     public bool IsSprinting { get; private set; }
@@ -25,6 +26,10 @@ public class PlayerInputHandler : MonoBehaviour
             // Look
             _inputActions.Player.Look.performed += i => LookInput = i.ReadValue<Vector2>();
             _inputActions.Player.Look.canceled += i => LookInput = Vector2.zero;
+
+            // Aim
+            _inputActions.Player.Aim.performed += i => AimInput = true;
+            _inputActions.Player.Aim.canceled += i => AimInput = false;
 
             // Fire
             _inputActions.Player.Fire.performed += i => FireInput = true;
