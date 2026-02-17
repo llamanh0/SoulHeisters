@@ -1462,6 +1462,7 @@ GameObject:
   - component: {fileID: 3070166986304665079}
   - component: {fileID: 915277613186537352}
   - component: {fileID: 3504467122149253590}
+  - component: {fileID: 2688814382064507606}
   - component: {fileID: 1203681500848132342}
   m_Layer: 7
   m_Name: Player
@@ -1669,6 +1670,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 7179212692714849053}
   locomotion: {fileID: 4554987873464450146}
+--- !u!114 &2688814382064507606
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5322575492557273201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8dd96e87aa22cf4b9b36c3c8863b72a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TransitionStateInfoList:
+  - IsCrossFadeExit: 0
+    Layer: 1
+    OriginatingState: -542986255
+    DestinationState: 1080829965
+    TransitionDuration: 0.25
+    TriggerNameHash: 1080829965
+    TransitionIndex: 0
+  m_Animator: {fileID: 7179212692714849053}
 --- !u!114 &1203681500848132342
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1686,11 +1708,11 @@ MonoBehaviour:
   spineAimOffset: {x: 90, y: 90, z: 90}
   horizontalLimit: 60
   verticalLimit: 60
-  armAimOffset: {x: 180, y: 60, z: 120}
-  armInnerLimit: 90
-  armOuterLimit: 150
+  armAimOffset: {x: 180, y: 15, z: 90}
+  elbowStraightenAngle: 15
   spineBone: {fileID: 2214474789932031263}
   shoulderBone: {fileID: 8890353420513907259}
+  elbowBone: {fileID: 7931972690939820048}
 --- !u!1 &5392096305220728531
 GameObject:
   m_ObjectHideFlags: 0
