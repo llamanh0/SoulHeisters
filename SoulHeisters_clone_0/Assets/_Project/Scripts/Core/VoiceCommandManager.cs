@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Whisper;
-using Whisper.Utils;
 
 public class VoiceCommandManager : MonoBehaviour
 {
@@ -9,21 +10,29 @@ public class VoiceCommandManager : MonoBehaviour
 
     [Header("Bileşenler")]
     [SerializeField] private WhisperManager whisperManager;
-    [SerializeField] private MicrophoneRecord microphoneRecord;
 
-    [Header("Mod Ayarları")]
-    [Tooltip("İşaretli değilse 'Sürekli Dinleme' moduna geçer.")]
-    public bool usePushToTalk = false;
+    [Header("Ayarlar")]
+    [Tooltip("En fazla kaç saniye kayıt alınsın?")]
+    public int maxRecordingLength = 5; // Komut için 5 saniye yeter de artar
 
-    [Tooltip("Aynı komutun tekrar tetiklenmesi için kaç saniye geçmeli?")]
-    public float commandCooldown = 1.2f;
-    
+    [Tooltip("Mikrofon frekansı")]
+    public int recordingFrequency = 16000;
+
+    [Tooltip("Tuşa çok kısa basılsa bile en az bu kadar süre kayıt al.")]
+    public float minRecordingTime = 0.6f;
+
+    [Header("Ses İşleme")]
+    [Tooltip("Sesi yapay olarak yükseltir (Boost). BLANK_AUDIO hatasını çözer.")]
+    public bool boostVolume = true;
+    [Range(1f, 10f)] public float volumeMultiplier = 3.0f; // Sesi 3 katına çıkarır
+
+    private AudioClip _recordingClip;
+    private string _micDevice;
+    private bool _isRecording = false;
+    private float _startRecordingTime;
+
+    // Komutlar
     private readonly string[] _keywords = { "fireball", "fire", "heal", "shield" };
-
-    private WhisperStream _stream;
-    private float _lastCommandTime;
-    private bool _isStreamReady = false;
-
     public event Action<string> OnCommandRecognized;
 
     private void Awake()
@@ -32,89 +41,127 @@ public class VoiceCommandManager : MonoBehaviour
         else Instance = this;
     }
 
-    private async void Start()
+    private void Start()
     {
-        if (whisperManager == null || microphoneRecord == null) return;
-
         if (Microphone.devices.Length > 0)
         {
-            microphoneRecord.SelectedMicDevice = Microphone.devices[0];
-        }
-
-        _stream = await whisperManager.CreateStream(microphoneRecord);
-
-        _stream.OnResultUpdated += OnPartialResult;
-        _stream.OnSegmentFinished += OnFinalResult;
-
-        _isStreamReady = true;
-
-        if (usePushToTalk)
-        {
-            microphoneRecord.StopRecord();
-            Debug.Log("[Voice] Mod: BAS-KONUŞ (Tuş Bekleniyor)");
+            _micDevice = Microphone.devices[0];
         }
         else
         {
-            StartStreamSession();
-            Debug.Log("[Voice] Mod: SÜREKLİ DİNLEME (Mikrofon Açık)");
+            Debug.LogError("[Voice] Mikrofon bulunamadı!");
         }
     }
 
     public void StartListening()
     {
-        if (usePushToTalk && _isStreamReady) StartStreamSession();
+        if (_isRecording) return;
+        StartCoroutine(RecordRoutine());
     }
 
     public void StopListening()
     {
-        if (usePushToTalk && _isStreamReady) microphoneRecord.StopRecord();
+        _isRecording = false;
     }
 
-    private void StartStreamSession()
+    private IEnumerator RecordRoutine()
     {
-        if (!microphoneRecord.IsRecording)
+        _isRecording = true;
+        _startRecordingTime = Time.time;
+
+        // 1. Kaydı Başlat
+        _recordingClip = Microphone.Start(_micDevice, false, maxRecordingLength, recordingFrequency);
+        // Debug.Log("[Voice] Kayıt başladı...");
+
+        // 2. Bekleme Döngüsü
+        while (_isRecording || (Time.time - _startRecordingTime < minRecordingTime))
         {
-            _stream.StartStream();
-            microphoneRecord.StartRecord();
+            if (Time.time - _startRecordingTime >= maxRecordingLength) break;
+            yield return null;
         }
+
+        // 3. Kaydı Bitir
+        int lastPos = Microphone.GetPosition(_micDevice);
+        Microphone.End(_micDevice);
+
+        // Debug.Log($"[Voice] Kayıt bitti. Süre: {Time.time - _startRecordingTime:F2}s");
+
+        if (lastPos <= 0) yield break;
+
+        // 4. Sesi Kırp ve Yükselt (Boost)
+        float[] samples = new float[lastPos * _recordingClip.channels];
+        _recordingClip.GetData(samples, 0);
+
+        if (boostVolume)
+        {
+            BoostAudio(ref samples);
+        }
+
+        AudioClip trimmedClip = AudioClip.Create("Command", lastPos, _recordingClip.channels, recordingFrequency, false);
+        trimmedClip.SetData(samples, 0);
+
+        // 5. Whisper'a Gönder
+        TranscribeAudio(trimmedClip);
     }
 
-    private void OnPartialResult(string result)
+    // --- SES YÜKSELTME FONKSİYONU ---
+    private void BoostAudio(ref float[] samples)
     {
-        ProcessText(result);
+        float maxVal = 0f;
+
+        // En yüksek ses seviyesini bul
+        for (int i = 0; i < samples.Length; i++)
+        {
+            if (Mathf.Abs(samples[i]) > maxVal) maxVal = Mathf.Abs(samples[i]);
+        }
+
+        // Eğer ses çok kısıksa işlem yapma (0'a bölme hatası olmasın)
+        if (maxVal < 0.001f) return;
+
+        // Normalizasyon Çarpanı: Sesi patlatmadan yükselt
+        // Hedef seviye 0.8f (maksimum 1.0f üzerinden)
+        float multiplier = Mathf.Min(volumeMultiplier, 0.8f / maxVal);
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            samples[i] *= multiplier;
+        }
+        // Debug.Log($"[Voice] Ses seviyesi {multiplier:F2} kat yükseltildi.");
     }
 
-    private void OnFinalResult(WhisperResult result)
+    private async void TranscribeAudio(AudioClip clip)
     {
-        ProcessText(result.Result);
+        try
+        {
+            var result = await whisperManager.GetTextAsync(clip);
+            ProcessText(result.Result);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[Voice] Hata: {e.Message}");
+        }
     }
 
     private void ProcessText(string text)
     {
-        if (string.IsNullOrEmpty(text)) return;
+        if (string.IsNullOrWhiteSpace(text) || text.Contains("BLANK_AUDIO"))
+        {
+            Debug.LogWarning($"[Voice] Anlaşılamadı: {text}");
+            return;
+        }
 
-        if (Time.time - _lastCommandTime < commandCooldown) return;
-
-        string cleanText = text.Trim().ToLowerInvariant();
+        string cleanText = Regex.Replace(text.Trim().ToLowerInvariant(), @"[^\w\s]", "");
+        Debug.Log($"<color=cyan>[Voice] Algılanan: {cleanText}</color>");
 
         foreach (var keyword in _keywords)
         {
+            // Contains yerine tam kelime kontrolü daha güvenli olabilir ama şimdilik böyle kalsın
             if (cleanText.Contains(keyword))
             {
-                Debug.Log($"[Voice Stream] TETİKLENDİ: {keyword}");
+                Debug.Log($"<color=green><b>[Voice] KOMUT: {keyword.ToUpper()}</b></color>");
                 OnCommandRecognized?.Invoke(keyword);
-
-                _lastCommandTime = Time.time;
                 return;
             }
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (_isStreamReady && _stream != null)
-        {
-            // _stream.StopStream(); 
         }
     }
 }

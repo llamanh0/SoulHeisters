@@ -527,9 +527,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 448249430}
-  - component: {fileID: 448249431}
-  - component: {fileID: 448249433}
   - component: {fileID: 448249434}
+  - component: {fileID: 448249431}
   m_Layer: 0
   m_Name: System_Voice
   m_TagString: Untagged
@@ -576,44 +575,15 @@ MonoBehaviour:
   noContext: 1
   singleSegment: 1
   enableTokens: 1
-  initialPrompt: 
+  initialPrompt: Fire, Fireball, Heal, Shield
   stepSec: 0.5
   keepSec: 0.2
   lengthSec: 10
   updatePrompt: 1
   dropOldBuffer: 0
-  useVad: 1
+  useVad: 0
   tokensTimestamps: 0
   audioCtx: 0
---- !u!114 &448249433
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 448249429}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bc03a4c19604ea394e364f8fc632928, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxLengthSec: 60
-  loop: 0
-  frequency: 16000
-  chunksLengthSec: 0.5
-  echo: 0
-  useVad: 1
-  vadUpdateRateSec: 0.1
-  vadContextSec: 30
-  vadLastSec: 1.25
-  vadThd: 0.6
-  vadFreqThd: 100
-  vadIndicatorImage: {fileID: 0}
-  vadStop: 0
-  dropVadPart: 1
-  vadStopTime: 0.3
-  microphoneDropdown: {fileID: 0}
-  microphoneDefaultLabel: Default microphone
 --- !u!114 &448249434
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -627,9 +597,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   whisperManager: {fileID: 448249431}
-  microphoneRecord: {fileID: 448249433}
-  usePushToTalk: 0
-  commandCooldown: 1
+  maxRecordingLength: 10
+  recordingFrequency: 16000
+  minRecordingTime: 0.5
+  boostVolume: 1
+  volumeMultiplier: 3
 --- !u!1 &518609404
 GameObject:
   m_ObjectHideFlags: 0
