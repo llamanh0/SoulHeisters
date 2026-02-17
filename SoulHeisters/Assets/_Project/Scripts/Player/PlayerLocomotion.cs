@@ -6,7 +6,7 @@ using UnityEngine;
 public class PlayerLocomotion : NetworkBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform playerVisuals;
+    [SerializeField] private Transform playerTransform;
 
     [Header("Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -19,6 +19,8 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 0.03f;
     [SerializeField] private float topClamp = 70.0f;
     [SerializeField] private float bottomClamp = -40.0f;
+
+    public float CurrentMoveSpeed { get; private set; }
 
     private NetworkVariable<float> _netVisualRotationY = new NetworkVariable<float>(
         0,
@@ -86,7 +88,7 @@ public class PlayerLocomotion : NetworkBehaviour
     private void SyncVisualRotation()
     {
         Quaternion targetRotation = Quaternion.Euler(0, _netVisualRotationY.Value, 0);
-        playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        playerTransform.rotation = Quaternion.Slerp(playerTransform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
     private void HandleMovement()
@@ -94,7 +96,7 @@ public class PlayerLocomotion : NetworkBehaviour
         Vector2 inputVector = _input.MoveInput;
         bool isSprinting = _input.IsSprinting;
 
-        if (inputVector == Vector2.zero) return;
+        if (inputVector == Vector2.zero) { CurrentMoveSpeed = 0; return; }
 
         Vector3 camForward = _cameraTransform.forward;
         Vector3 camRight = _cameraTransform.right;
@@ -109,12 +111,14 @@ public class PlayerLocomotion : NetworkBehaviour
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-            _netVisualRotationY.Value = playerVisuals.eulerAngles.y;
+            playerTransform.rotation = Quaternion.Slerp(playerTransform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            _netVisualRotationY.Value = playerTransform.eulerAngles.y;
         }
 
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
         _controller.Move(moveDirection * currentSpeed * Time.deltaTime);
+
+        CurrentMoveSpeed = inputVector.magnitude * currentSpeed;
     }
 
     private void HandleGravity()
