@@ -16,7 +16,7 @@ public class PlayerLocomotion : NetworkBehaviour
 
     [Header("Camera Settings")]
     [SerializeField] private GameObject cameraRoot;
-    [SerializeField] private float mouseSensitivity = 1.5f;
+    [SerializeField] private float mouseSensitivity = 0.03f;
     [SerializeField] private float topClamp = 70.0f;
     [SerializeField] private float bottomClamp = -40.0f;
 

@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: e76cbf4d939c5ef459b44f0094fd915d
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures:
+  - _Albedo_A: {fileID: 2800000, guid: abc00000000012431439308118642558, type: 3}
+  - _Albedo_B: {fileID: 2800000, guid: f8232031c2875ce41b3cda7976f1e946, type: 3}
+  - _Mask: {fileID: 2800000, guid: abc00000000000149353655522420383, type: 3}
+  - _MaskTexture: {fileID: 2800000, guid: a6bb3265c102a244387807ae59fac3f3, type: 3}
+  - _Normal_A: {fileID: 2800000, guid: abc00000000007042257557727383858, type: 3}
+  - _Normal_B: {fileID: 2800000, guid: abc00000000007042257557727383858, type: 3}
+  - _NormalTexture: {fileID: 2800000, guid: abc00000000007042257557727383858, type: 3}
+  - _Metallic_A: {fileID: 2800000, guid: a6bb3265c102a244387807ae59fac3f3, type: 3}
+  - _Metallic_B: {fileID: 2800000, guid: a6bb3265c102a244387807ae59fac3f3, type: 3}
+  - _Roughness_A: {fileID: 2800000, guid: a6bb3265c102a244387807ae59fac3f3, type: 3}
+  - _Roughness_B: {fileID: 2800000, guid: a6bb3265c102a244387807ae59fac3f3, type: 3}
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
