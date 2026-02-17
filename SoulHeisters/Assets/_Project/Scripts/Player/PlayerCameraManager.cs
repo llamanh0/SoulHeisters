@@ -15,7 +15,7 @@ public class PlayerCameraManager : NetworkBehaviour
 
     private PlayerInputHandler _input;
     private bool _isFpsMode = false;
-    private bool _wasCameraInputPressed = false; // Logic for single press detection
+    private bool _wasCameraInputPressed = false;
 
     private void Awake()
     {
