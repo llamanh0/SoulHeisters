@@ -29,12 +29,14 @@ public class ProjectileController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        if (other.TryGetComponent(out NetworkObject netObj))
+        NetworkObject netObj = other.GetComponentInParent<NetworkObject>();
+        if (netObj != null)
         {
             if (netObj.OwnerClientId == _ownerId) return;
         }
 
-        if (other.TryGetComponent(out IDamageable damageable))
+        IDamageable damageable = other.GetComponentInParent<IDamageable>();
+        if (damageable != null)
         {
             damageable.TakeDamage(_damage, _ownerId);
         }
