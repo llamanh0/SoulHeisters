@@ -10,36 +10,35 @@ public class RagdollController : MonoBehaviour
     {
         _animator = GetComponent<Animator>();
 
-        // Hiyerarşinin altındaki tüm kemik fiziklerini bul
         _boneRigidbodies = GetComponentsInChildren<Rigidbody>();
         _boneColliders = GetComponentsInChildren<Collider>();
 
-        DisableRagdoll(); // Oyun başlarken fizik kapalı, animasyon açık olsun
+        DisableRagdoll();
     }
 
     public void EnableRagdoll()
     {
-        _animator.enabled = false; // Animasyonu kapat ki fizik devreye girsin
+        _animator.enabled = false;
 
         foreach (var rb in _boneRigidbodies)
         {
-            rb.isKinematic = false; // Fizik motoruna teslim et
+            rb.isKinematic = false;
             rb.useGravity = true;
         }
 
         foreach (var col in _boneColliders)
         {
-            col.enabled = true; // Çarpışmaları aç
+            col.enabled = true;
         }
     }
 
     public void DisableRagdoll()
     {
-        _animator.enabled = true; // Animasyonu geri aç
+        _animator.enabled = true;
 
         foreach (var rb in _boneRigidbodies)
         {
-            rb.isKinematic = true; // Fiziği durdur, animasyonu takip et
+            rb.isKinematic = true;
         }
 
         foreach (var col in _boneColliders)
