@@ -10,6 +10,8 @@ public class ProjectileController : NetworkBehaviour
     private float _damage;
     private ulong _ownerId;
 
+    private bool _hasHit = false;
+
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
@@ -20,6 +22,8 @@ public class ProjectileController : NetworkBehaviour
         _damage = damageAmount;
         _ownerId = ownerId;
 
+        _hasHit = false;
+
         _rb.velocity = direction * speed;
 
         Invoke(nameof(DestroyProjectile), lifeTime);
@@ -27,13 +31,15 @@ public class ProjectileController : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServer) return;
+        if (!IsServer || _hasHit) return;
 
         NetworkObject netObj = other.GetComponentInParent<NetworkObject>();
         if (netObj != null)
         {
             if (netObj.OwnerClientId == _ownerId) return;
         }
+
+        _hasHit = true;
 
         IDamageable damageable = other.GetComponentInParent<IDamageable>();
         if (damageable != null)
