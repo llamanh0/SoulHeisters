@@ -1,47 +1,96 @@
 ﻿using UnityEngine;
+using UnityEngine.Animations.Rigging;
+using Unity.Netcode;
 
-public class SpellCastRigController : MonoBehaviour
+public class SpellCastRigController : NetworkBehaviour
 {
-    [Header("IK Settings")]
-    [Tooltip("HandTarget")]
-    [SerializeField] private Transform ikTarget;
+    [Header("Rig Components")]
+    [SerializeField] private Rig armRig;
+    [SerializeField] private Transform realHandTarget;
+    [SerializeField] private Transform realElbowHint;
 
-    [Header("Recoil Settings")]
-    [SerializeField] private Vector3 recoilLocalOffset = new Vector3(0, 0, -0.3f);
-    [SerializeField] private float snapSpeed = 40f;
-    [SerializeField] private float recoverSpeed = 8f;
+    [Header("Bone References")]
+    [SerializeField] private Transform shoulderTransform;
 
-    private Vector3 _defaultLocalPosition;
-    private Vector3 _currentLocalPosition;
-    private bool _isInitialized = false;
+    [Header("Position References")]
+    [SerializeField] private Transform idleHandRef;
+    [SerializeField] private Transform aimHandRef;
+
+    [Header("Settings")]
+    [SerializeField] private float transitionSpeed = 20f;
+
+    [Header("Safety Settings")]
+    [SerializeField] private float bodyRadius = 0.45f;
+
+    private PlayerInputHandler _input;
+    private Camera _mainCamera;
+    private float _targetWeight;
+
+    private void Awake()
+    {
+        _input = GetComponent<PlayerInputHandler>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner) _mainCamera = Camera.main;
+    }
 
     private void Start()
     {
-        if (ikTarget != null)
+        armRig.weight = 0f;
+        if (IsOwner && _mainCamera == null) _mainCamera = Camera.main;
+    }
+
+    private void LateUpdate()
+    {
+        if (_mainCamera == null) return;
+
+        bool isAiming = _input.AimInput || _input.FireInput;
+
+        HandleRigWeight(isAiming);
+        UpdatePositions(isAiming);
+    }
+
+    private void HandleRigWeight(bool isAiming)
+    {
+        _targetWeight = isAiming ? 1f : 0f;
+        armRig.weight = Mathf.Lerp(armRig.weight, _targetWeight, Time.deltaTime * transitionSpeed);
+    }
+
+    private void UpdatePositions(bool isAiming)
+    {
+        if (isAiming)
         {
-            _defaultLocalPosition = ikTarget.localPosition;
-            _currentLocalPosition = _defaultLocalPosition;
-            _isInitialized = true;
+            Vector3 rawTargetPos = aimHandRef.position;
+            Vector3 safeTargetPos = CalculateSafePosition(rawTargetPos);
+
+            realHandTarget.position = Vector3.Lerp(realHandTarget.position, safeTargetPos, Time.deltaTime * transitionSpeed);
+            realHandTarget.rotation = Quaternion.Slerp(realHandTarget.rotation, aimHandRef.rotation, Time.deltaTime * transitionSpeed);
+
+            Vector3 camRight = _mainCamera.transform.right;
+            Vector3 camFwd = _mainCamera.transform.forward;
+            Vector3 camUp = _mainCamera.transform.up;
+
+            Vector3 shoulderPos = shoulderTransform.position;
+            Vector3 elbowMathPos = shoulderPos + (camRight * 0.6f) - (camUp * 0.3f) - (camFwd * 0.2f);
+
+            realElbowHint.position = Vector3.Lerp(realElbowHint.position, elbowMathPos, Time.deltaTime * transitionSpeed);
         }
         else
         {
-            Debug.LogError("SpellCastRigController: IK Target atanmamis!");
+            realHandTarget.position = Vector3.Lerp(realHandTarget.position, idleHandRef.position, Time.deltaTime * transitionSpeed);
+            realHandTarget.rotation = Quaternion.Slerp(realHandTarget.rotation, idleHandRef.rotation, Time.deltaTime * transitionSpeed);
+
+            Vector3 idleElbow = transform.position + (transform.right * 0.5f) + (transform.up * 1.2f);
+            realElbowHint.position = Vector3.Lerp(realElbowHint.position, idleElbow, Time.deltaTime * transitionSpeed);
         }
     }
 
-    private void Update()
+    private Vector3 CalculateSafePosition(Vector3 targetPos)
     {
-        if (!_isInitialized) return;
-
-        _currentLocalPosition = Vector3.Lerp(_currentLocalPosition, _defaultLocalPosition, Time.deltaTime * recoverSpeed);
-
-        ikTarget.localPosition = Vector3.Lerp(ikTarget.localPosition, _currentLocalPosition, Time.deltaTime * snapSpeed);
-    }
-
-    public void TriggerRecoil()
-    {
-        if (!_isInitialized) return;
-
-        _currentLocalPosition += recoilLocalOffset;
+        Vector3 localPos = transform.InverseTransformPoint(targetPos);
+        if (localPos.x < bodyRadius) localPos.x = bodyRadius;
+        return transform.TransformPoint(localPos);
     }
 }
