@@ -14679,7 +14679,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &9185434568921661400
 Transform:
   m_ObjectHideFlags: 0
@@ -19512,7 +19512,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6970274393609386948
 Transform:
   m_ObjectHideFlags: 0
@@ -19610,6 +19610,7 @@ Transform:
   m_Children:
   - {fileID: 9185434568921661400}
   - {fileID: 6970274393609386948}
+  - {fileID: 8988456759913092709}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &6028111447893774861
@@ -19639,3 +19640,77 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!1001 &405255073797039745
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6286917399396781663}
+    m_Modifications:
+    - target: {fileID: 4225092703411949815, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_Name
+      value: Razor Missile Teal
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 10693ad137c94564892ca1d97889f91d, type: 3}
+--- !u!4 &8988456759913092709 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8728724413359124708, guid: 10693ad137c94564892ca1d97889f91d,
+    type: 3}
+  m_PrefabInstance: {fileID: 405255073797039745}
+  m_PrefabAsset: {fileID: 0}
