@@ -6,15 +6,19 @@ using TMPro;
 public class PlayerHUD : NetworkBehaviour
 {
     [Header("UI References")]
-    [Tooltip("Sadece bize ait olan ana Canvas objesi")]
     [SerializeField] private GameObject hudCanvas;
+
+    [Header("Health UI")]
     [SerializeField] private Image healthFill;
     [SerializeField] private TextMeshProUGUI healthText;
-
-    [Header("Player References")]
     [SerializeField] private HealthComponent healthComponent;
 
-    private const float MAX_HEALTH = 100f;
+    [Header("Mana UI")]
+    [SerializeField] private Image manaFill;
+    [SerializeField] private TextMeshProUGUI manaText;
+    [SerializeField] private PlayerCombat playerCombat;
+
+    private const float MAX_HEALTH_DISPLAY = 100f;
 
     public override void OnNetworkSpawn()
     {
@@ -29,28 +33,39 @@ public class PlayerHUD : NetworkBehaviour
         if (healthComponent != null)
         {
             healthComponent.OnHealthChanged += UpdateHealthUI;
-            UpdateHealthUI(MAX_HEALTH, healthComponent.CurrentHealth);
+            UpdateHealthUI(MAX_HEALTH_DISPLAY, healthComponent.CurrentHealth);
+        }
+
+        if (playerCombat != null)
+        {
+            playerCombat.OnManaChanged += UpdateManaUI;
         }
     }
 
     public override void OnNetworkDespawn()
     {
-        if (IsOwner && healthComponent != null)
-        {
-            healthComponent.OnHealthChanged -= UpdateHealthUI;
-        }
+        if (!IsOwner) return;
+
+        if (healthComponent != null) healthComponent.OnHealthChanged -= UpdateHealthUI;
+        if (playerCombat != null) playerCombat.OnManaChanged -= UpdateManaUI;
     }
 
     private void UpdateHealthUI(float previousHealth, float currentHealth)
     {
-        if (healthFill != null)
+        if (healthFill != null) healthFill.fillAmount = currentHealth / MAX_HEALTH_DISPLAY;
+        if (healthText != null) healthText.text = $"{Mathf.CeilToInt(currentHealth)}";
+    }
+
+    private void UpdateManaUI(float currentMana, float maxMana)
+    {
+        if (manaFill != null)
         {
-            healthFill.fillAmount = currentHealth / MAX_HEALTH;
+            manaFill.fillAmount = currentMana / maxMana;
         }
 
-        if (healthText != null)
+        if (manaText != null)
         {
-            healthText.text = $"{Mathf.CeilToInt(currentHealth)} / {MAX_HEALTH}";
+            manaText.text = $"{Mathf.FloorToInt(currentMana)}";
         }
     }
 }
