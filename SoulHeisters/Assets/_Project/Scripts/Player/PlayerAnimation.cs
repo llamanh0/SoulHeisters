@@ -8,13 +8,11 @@ public class PlayerAnimation : NetworkBehaviour
 
     private int _speedParamID;
     private int _isGroundedParamID;
-    private int _attackParamID;
 
     private void Awake()
     {
         _speedParamID = Animator.StringToHash("Speed");
         _isGroundedParamID = Animator.StringToHash("IsGrounded");
-        _attackParamID = Animator.StringToHash("Attack");
         if (locomotion == null) locomotion = GetComponent<PlayerLocomotion>();
     }
 
@@ -27,10 +25,5 @@ public class PlayerAnimation : NetworkBehaviour
         animator.SetFloat(_speedParamID, speed, 0.1f, Time.deltaTime);
 
         animator.SetBool(_isGroundedParamID, GetComponent<CharacterController>().isGrounded);
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            animator.SetTrigger(_attackParamID);
-        }
     }
 }
