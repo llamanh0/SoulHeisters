@@ -11,14 +11,20 @@ public class PlayerHUD : NetworkBehaviour
     [Header("Health UI")]
     [SerializeField] private Image healthFill;
     [SerializeField] private TextMeshProUGUI healthText;
-    [SerializeField] private HealthComponent healthComponent;
 
     [Header("Mana UI")]
     [SerializeField] private Image manaFill;
     [SerializeField] private TextMeshProUGUI manaText;
-    [SerializeField] private PlayerCombat playerCombat;
+
+    private PlayerReferences _refs;
 
     private const float MAX_HEALTH_DISPLAY = 100f;
+
+    private void Awake()
+    {
+        _refs = GetComponent<PlayerReferences>();
+        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -30,15 +36,15 @@ public class PlayerHUD : NetworkBehaviour
 
         if (hudCanvas != null) hudCanvas.SetActive(true);
 
-        if (healthComponent != null)
+        if (_refs.Health != null)
         {
-            healthComponent.OnHealthChanged += UpdateHealthUI;
-            UpdateHealthUI(MAX_HEALTH_DISPLAY, healthComponent.CurrentHealth);
+            _refs.Health.OnHealthChanged += UpdateHealthUI;
+            UpdateHealthUI(MAX_HEALTH_DISPLAY, _refs.Health.CurrentHealth);
         }
 
-        if (playerCombat != null)
+        if (_refs.Mana != null)
         {
-            playerCombat.OnManaChanged += UpdateManaUI;
+            _refs.Mana.OnManaChanged += UpdateManaUI;
         }
     }
 
@@ -46,8 +52,8 @@ public class PlayerHUD : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        if (healthComponent != null) healthComponent.OnHealthChanged -= UpdateHealthUI;
-        if (playerCombat != null) playerCombat.OnManaChanged -= UpdateManaUI;
+        if (_refs.Health != null) _refs.Health.OnHealthChanged -= UpdateHealthUI;
+        if (_refs.Mana != null) _refs.Mana.OnManaChanged -= UpdateManaUI;
     }
 
     private void UpdateHealthUI(float previousHealth, float currentHealth)

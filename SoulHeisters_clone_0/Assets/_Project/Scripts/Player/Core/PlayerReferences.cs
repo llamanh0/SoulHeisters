@@ -7,7 +7,8 @@ public class PlayerReferences : MonoBehaviour
     [field: SerializeField] public PlayerVisualController Visual { get; private set; }
     [field: SerializeField] public PlayerCombat Combat { get; private set; }
     [field: SerializeField] public HealthComponent Health { get; private set; }
-    //[field: SerializeField] public SoulComponent Soul { get; private set; }
+    [field: SerializeField] public ManaComponent Mana { get; private set; }
+    [field: SerializeField] public SpellInventory SpellInventory { get; private set; }
 
     private void Awake()
     {
@@ -26,6 +27,7 @@ public class PlayerReferences : MonoBehaviour
         Visual = GetComponentInChildren<PlayerVisualController>();
         Combat = GetComponentInChildren<PlayerCombat>();
         Health = GetComponentInChildren<HealthComponent>();
-        //Soul = GetComponentInChildren<SoulComponent>();
+        Mana = GetComponentInChildren<ManaComponent>();
+        SpellInventory = GetComponentInChildren<SpellInventory>();
     }
 }
