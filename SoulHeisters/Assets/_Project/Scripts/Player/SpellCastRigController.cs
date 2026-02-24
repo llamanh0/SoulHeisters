@@ -4,93 +4,92 @@ using Unity.Netcode;
 
 public class SpellCastRigController : NetworkBehaviour
 {
-    [Header("Rig Components")]
-    [SerializeField] private Rig armRig;
-    [SerializeField] private Transform realHandTarget;
-    [SerializeField] private Transform realElbowHint;
+    [Header("Rig System")]
+    [SerializeField] private Rig mainRig;
+    [SerializeField] private Transform handIkTarget;
+    [SerializeField] private Transform elbowHint;
 
-    [Header("Bone References")]
-    [SerializeField] private Transform shoulderTransform;
-
-    [Header("Position References")]
-    [SerializeField] private Transform idleHandRef;
-    [SerializeField] private Transform aimHandRef;
+    [Header("Aim Target Reference")]
+    [SerializeField] private Transform globalAimTarget;
 
     [Header("Settings")]
-    [SerializeField] private float transitionSpeed = 20f;
+    [SerializeField] private float aimSpeed = 15f;
 
-    [Header("Safety Settings")]
-    [SerializeField] private float bodyRadius = 0.45f;
+    [Header("Idle Positions")]
+    [SerializeField] private Vector3 idleHandOffset = new Vector3(0.3f, 1.2f, 0.4f);
+    [SerializeField] private Vector3 idleElbowOffset = new Vector3(0.8f, 1.0f, -0.2f);
 
     private PlayerInputHandler _input;
-    private Camera _mainCamera;
-    private float _targetWeight;
+    private float _currentWeight;
+    private Transform _rootTransform;
 
     private void Awake()
     {
         _input = GetComponent<PlayerInputHandler>();
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        if (IsOwner) _mainCamera = Camera.main;
+        _rootTransform = transform;
     }
 
     private void Start()
     {
-        armRig.weight = 0f;
-        if (IsOwner && _mainCamera == null) _mainCamera = Camera.main;
+        mainRig.weight = 0f;
     }
 
     private void LateUpdate()
     {
-        if (_mainCamera == null) return;
+        if (!IsOwner) return;
 
         bool isAiming = _input.AimInput || _input.FireInput;
 
         HandleRigWeight(isAiming);
-        UpdatePositions(isAiming);
+
+        if (isAiming)
+        {
+            UpdateAimPositions();
+        }
+        else
+        {
+            UpdateIdlePositions();
+        }
     }
 
     private void HandleRigWeight(bool isAiming)
     {
-        _targetWeight = isAiming ? 1f : 0f;
-        armRig.weight = Mathf.Lerp(armRig.weight, _targetWeight, Time.deltaTime * transitionSpeed);
+        float targetW = isAiming ? 1f : 0f;
+        mainRig.weight = Mathf.Lerp(mainRig.weight, targetW, Time.deltaTime * 10f);
+        _currentWeight = mainRig.weight;
     }
 
-    private void UpdatePositions(bool isAiming)
+    private void UpdateAimPositions()
     {
-        if (isAiming)
-        {
-            Vector3 rawTargetPos = aimHandRef.position;
-            Vector3 safeTargetPos = CalculateSafePosition(rawTargetPos);
+        if (_currentWeight < 0.01f) return;
 
-            realHandTarget.position = Vector3.Lerp(realHandTarget.position, safeTargetPos, Time.deltaTime * transitionSpeed);
-            realHandTarget.rotation = Quaternion.Slerp(realHandTarget.rotation, aimHandRef.rotation, Time.deltaTime * transitionSpeed);
+        Vector3 targetPos = globalAimTarget.position;
 
-            Vector3 camRight = _mainCamera.transform.right;
-            Vector3 camFwd = _mainCamera.transform.forward;
-            Vector3 camUp = _mainCamera.transform.up;
+        handIkTarget.position = Vector3.Lerp(handIkTarget.position, targetPos, Time.deltaTime * aimSpeed);
 
-            Vector3 shoulderPos = shoulderTransform.position;
-            Vector3 elbowMathPos = shoulderPos + (camRight * 0.6f) - (camUp * 0.3f) - (camFwd * 0.2f);
+        Vector3 lookDir = (targetPos - _rootTransform.position).normalized;
+        handIkTarget.rotation = Quaternion.LookRotation(lookDir);
 
-            realElbowHint.position = Vector3.Lerp(realElbowHint.position, elbowMathPos, Time.deltaTime * transitionSpeed);
-        }
-        else
-        {
-            realHandTarget.position = Vector3.Lerp(realHandTarget.position, idleHandRef.position, Time.deltaTime * transitionSpeed);
-            realHandTarget.rotation = Quaternion.Slerp(realHandTarget.rotation, idleHandRef.rotation, Time.deltaTime * transitionSpeed);
-
-            Vector3 idleElbow = transform.position + (transform.right * 0.5f) + (transform.up * 1.2f);
-            realElbowHint.position = Vector3.Lerp(realElbowHint.position, idleElbow, Time.deltaTime * transitionSpeed);
-        }
+        Vector3 elbowPos = _rootTransform.position + (_rootTransform.right * 0.8f) + (_rootTransform.up * 1.0f) - (_rootTransform.forward * 0.2f);
+        elbowHint.position = Vector3.Lerp(elbowHint.position, elbowPos, Time.deltaTime * aimSpeed);
     }
 
-    private Vector3 CalculateSafePosition(Vector3 targetPos)
+    private void UpdateIdlePositions()
     {
-        Vector3 localPos = transform.InverseTransformPoint(targetPos);
-        if (localPos.x < bodyRadius) localPos.x = bodyRadius;
-        return transform.TransformPoint(localPos);
+        if (_currentWeight < 0.01f) return;
+
+        Vector3 targetIdlePos = _rootTransform.position +
+                              (_rootTransform.right * idleHandOffset.x) +
+                              (_rootTransform.up * idleHandOffset.y) +
+                              (_rootTransform.forward * idleHandOffset.z);
+
+        handIkTarget.position = Vector3.Lerp(handIkTarget.position, targetIdlePos, Time.deltaTime * aimSpeed);
+        handIkTarget.rotation = _rootTransform.rotation;
+
+        Vector3 targetElbowPos = _rootTransform.position +
+                               (_rootTransform.right * idleElbowOffset.x) +
+                               (_rootTransform.up * idleElbowOffset.y);
+
+        elbowHint.position = Vector3.Lerp(elbowHint.position, targetElbowPos, Time.deltaTime * aimSpeed);
     }
 }
