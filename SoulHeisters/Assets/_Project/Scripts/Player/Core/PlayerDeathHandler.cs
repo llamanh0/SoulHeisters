@@ -4,11 +4,6 @@ using Cinemachine;
 
 public class PlayerDeathHandler : NetworkBehaviour
 {
-    [Header("References")]
-    [SerializeField] private HealthComponent healthComponent;
-    [SerializeField] private RagdollController ragdollController;
-    [SerializeField] private Collider mainCapsuleCollider;
-
     [Header("Camera Settings")]
     [Tooltip("After Die Cam")]
     [SerializeField] private CinemachineVirtualCamera deathCamera;
@@ -16,11 +11,19 @@ public class PlayerDeathHandler : NetworkBehaviour
     [Header("Scripts to Disable")]
     [SerializeField] private MonoBehaviour[] scriptsToDisable;
 
+    private PlayerReferences _refs;
+
+    private void Awake()
+    {
+        _refs = GetComponent<PlayerReferences>();
+        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
+    }
+
     public override void OnNetworkSpawn()
     {
-        if (healthComponent != null)
+        if (_refs.Health != null)
         {
-            healthComponent.OnDeath += HandleDeath;
+            _refs.Health.OnDeath += HandleDeath;
         }
 
         if (deathCamera != null)
@@ -35,22 +38,23 @@ public class PlayerDeathHandler : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        if (healthComponent != null)
+        if (_refs.Health != null)
         {
-            healthComponent.OnDeath -= HandleDeath;
+            _refs.Health.OnDeath -= HandleDeath;
         }
     }
 
     private void HandleDeath()
     {
-        if (mainCapsuleCollider != null) mainCapsuleCollider.enabled = false;
+        if (_refs.Visual != null)
+        {
+            _refs.Visual.HandleDeathVisual();
+        }
 
         foreach (var script in scriptsToDisable)
         {
             if (script != null) script.enabled = false;
         }
-
-        if (ragdollController != null) ragdollController.EnableRagdoll();
 
         if (IsOwner && deathCamera != null)
         {

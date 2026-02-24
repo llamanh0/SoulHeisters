@@ -6,9 +6,6 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerInputHandler))]
 public class PlayerLocomotion : NetworkBehaviour
 {
-    [Header("References")]
-    [SerializeField] private Transform playerTransform;
-
     [Header("Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
@@ -33,9 +30,10 @@ public class PlayerLocomotion : NetworkBehaviour
     private float _cinemachineTargetPitch;
     private float _cinemachineTargetYaw;
 
+    private PlayerReferences _refs;
+
     // Component Refs
     private CharacterController _controller;
-    private PlayerInputHandler _input;
     private Transform _cameraTransform;
 
     // Physic Vars
@@ -45,7 +43,8 @@ public class PlayerLocomotion : NetworkBehaviour
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
-        _input = GetComponent<PlayerInputHandler>();
+        _refs = GetComponentInParent<PlayerReferences>();
+        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
     }
 
     public override void OnNetworkSpawn()
@@ -100,13 +99,13 @@ public class PlayerLocomotion : NetworkBehaviour
     private void SyncVisualRotation()
     {
         Quaternion targetRotation = Quaternion.Euler(0, _netVisualRotationY.Value, 0);
-        playerTransform.rotation = Quaternion.Slerp(playerTransform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
     private void HandleMovement()
     {
-        Vector2 inputVector = _input.MoveInput;
-        bool isSprinting = _input.IsSprinting;
+        Vector2 inputVector = _refs.Input.MoveInput;
+        bool isSprinting = _refs.Input.IsSprinting;
 
         if (inputVector == Vector2.zero) { CurrentMoveSpeed = 0; return; }
 
@@ -123,8 +122,8 @@ public class PlayerLocomotion : NetworkBehaviour
         if (moveDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            playerTransform.rotation = Quaternion.Slerp(playerTransform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-            _netVisualRotationY.Value = playerTransform.eulerAngles.y;
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            _netVisualRotationY.Value = transform.eulerAngles.y;
         }
 
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
@@ -149,7 +148,7 @@ public class PlayerLocomotion : NetworkBehaviour
 
     private void CameraRotation()
     {
-        Vector2 lookInput = _input.LookInput;
+        Vector2 lookInput = _refs.Input.LookInput;
 
         if (lookInput.sqrMagnitude >= 0.01f)
         {

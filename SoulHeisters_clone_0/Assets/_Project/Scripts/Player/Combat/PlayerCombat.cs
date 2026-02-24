@@ -7,7 +7,6 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Configuration")]
     [SerializeField] private Transform firePoint;
     [SerializeField] private LayerMask aimColliderMask = new LayerMask();
-    [SerializeField] private SpellCastRigController rigController;
 
     [Header("Magic Stats")]
     [SerializeField] private float projectileSpeed = 30f;
@@ -25,7 +24,8 @@ public class PlayerCombat : NetworkBehaviour
 
     public event Action<float, float> OnManaChanged;
 
-    private PlayerInputHandler _input;
+    private PlayerReferences _refs;
+
     private Camera _mainCamera;
 
     private float _nextFireTime;
@@ -33,8 +33,8 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Awake()
     {
-        _input = GetComponent<PlayerInputHandler>();
-        if (rigController == null) rigController = GetComponent<SpellCastRigController>();
+        _refs = GetComponentInParent<PlayerReferences>();
+        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
 
         _currentMana = maxMana;
     }
@@ -54,7 +54,7 @@ public class PlayerCombat : NetworkBehaviour
 
         HandleManaRegeneration();
 
-        if (_input.FireInput && Time.time >= _nextFireTime)
+        if (_refs.Input.FireInput && Time.time >= _nextFireTime)
         {
             if (_currentMana >= manaCostPerShot)
             {
