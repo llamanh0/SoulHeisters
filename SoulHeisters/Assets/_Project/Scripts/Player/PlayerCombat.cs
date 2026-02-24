@@ -12,7 +12,7 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Magic Stats")]
     [SerializeField] private float projectileSpeed = 30f;
     [SerializeField] private float damage = 15f;
-    [SerializeField] private float fireRate = 0.2f;
+    [SerializeField] private float fireRate = 0.5f;
 
     [Header("Mana Settings")]
     [SerializeField] private float maxMana = 100f;
@@ -22,7 +22,6 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Visuals")]
     [SerializeField] private GameObject visualBoltPrefab;
     [SerializeField] private GameObject serverBoltPrefab;
-    //[SerializeField] private bool showDebugRay = true;
 
     public event Action<float, float> OnManaChanged;
 
@@ -88,8 +87,6 @@ public class PlayerCombat : NetworkBehaviour
 
         SpawnVisualBolt(firePoint.position, targetRotation, aimDirection);
 
-        //if (rigController != null) rigController.TriggerRecoil();
-
         ShootServerRpc(firePoint.position, targetRotation, aimDirection);
     }
 
@@ -120,7 +117,6 @@ public class PlayerCombat : NetworkBehaviour
     private void ShootClientRpc(Vector3 spawnPosition, Quaternion spawnRotation, Vector3 direction)
     {
         if (IsOwner) return;
-        //if (rigController != null) rigController.TriggerRecoil();
         SpawnVisualBolt(spawnPosition, spawnRotation, direction);
     }
 

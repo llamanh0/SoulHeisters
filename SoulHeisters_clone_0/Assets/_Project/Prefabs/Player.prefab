@@ -3215,7 +3215,7 @@ MonoBehaviour:
   aimColliderMask:
     serializedVersion: 2
     m_Bits: 1399
-  rigController: {fileID: 0}
+  rigController: {fileID: 1052724547389688891}
   projectileSpeed: 40
   damage: 20
   fireRate: 0.5

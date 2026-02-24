@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 6529659421573347125}
   - component: {fileID: 4786899610861315934}
   - component: {fileID: 9120049824358247622}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ServerBolt_Prefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
