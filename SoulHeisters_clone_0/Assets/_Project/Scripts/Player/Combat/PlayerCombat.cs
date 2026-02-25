@@ -1,12 +1,11 @@
-﻿using Unity.Netcode;
+﻿using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 public class PlayerCombat : NetworkBehaviour
 {
     [Header("Bolt Config")]
     [SerializeField] private Transform firePoint;
-    [SerializeField] private GameObject serverBoltPrefab;
-    [SerializeField] private GameObject visualBoltPrefab;
 
     public Transform FirePoint => firePoint;
 
@@ -31,10 +30,19 @@ public class PlayerCombat : NetworkBehaviour
 
     // SERVER AUTHORITY
     [ServerRpc]
-    public void CastBoltServerRpc(Vector3 targetPoint, float manaCost, float damage, float projectileSpeed)
+    public void CastSpellServerRpc(
+    SpellType spellType,
+    Vector3 targetPoint,
+    float manaCost,
+    float damage,
+    float projectileSpeed)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
+
+        var def = _refs.SpellInventory.FindSpellDefinition(spellType);
+
+        if (def == null) return;
 
         Vector3 direction =
             (targetPoint - firePoint.position).normalized;
@@ -43,7 +51,7 @@ public class PlayerCombat : NetworkBehaviour
             Quaternion.LookRotation(direction);
 
         GameObject serverObj =
-            Instantiate(serverBoltPrefab,
+            Instantiate(def.serverPrefab,
                         firePoint.position,
                         rotation);
 
@@ -57,26 +65,77 @@ public class PlayerCombat : NetworkBehaviour
 
         serverObj.GetComponent<NetworkObject>().Spawn();
 
-        CastBoltClientRpc(firePoint.position,
-                          rotation,
-                          direction,
-                          projectileSpeed);
+        CastSpellClientRpc(
+            spellType,
+            firePoint.position,
+            rotation,
+            direction,
+            projectileSpeed);
     }
 
     [ClientRpc]
-    private void CastBoltClientRpc(Vector3 pos,
-                               Quaternion rot,
-                               Vector3 dir,
-                               float projectileSpeed)
+    private void CastSpellClientRpc(
+    SpellType spellType,
+    Vector3 pos,
+    Quaternion rot,
+    Vector3 dir,
+    float projectileSpeed)
     {
         if (IsOwner) return;
 
+        var def = _refs.SpellInventory.FindSpellDefinition(spellType);
+        if (def == null) return;
+
         GameObject visualObj =
-            Instantiate(visualBoltPrefab, pos, rot);
+            Instantiate(def.visualPrefab, pos, rot);
 
         if (visualObj.TryGetComponent<Rigidbody>(out var rb))
             rb.velocity = dir * projectileSpeed;
 
         Destroy(visualObj, 5f);
+    }
+
+    [ServerRpc]
+    public void CastBlinkServerRpc(Vector3 targetPosition, float manaCost)
+    {
+        if (!_refs.Mana.TryConsume(manaCost))
+            return;
+
+        transform.position = targetPosition;
+    }
+
+    [ServerRpc]
+    public void CastArcBurstServerRpc(float radius, float damage, float manaCost)
+    {
+        if (!_refs.Mana.TryConsume(manaCost))
+            return;
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, radius);
+
+        foreach (var hit in hits)
+        {
+            if (hit.TryGetComponent<IDamageable>(out var dmg))
+            {
+                dmg.TakeDamage(damage, OwnerClientId);
+            }
+        }
+    }
+
+    [ServerRpc]
+    public void CastSoulGuardServerRpc(float duration, float damageReduction, float manaCost)
+    {
+        if (!_refs.Mana.TryConsume(manaCost))
+            return;
+
+        StartCoroutine(ApplyDamageReduction(duration, damageReduction));
+    }
+
+    private IEnumerator ApplyDamageReduction(float duration, float reduction)
+    {
+        _refs.Health.SetDamageReduction(reduction);
+
+        yield return new WaitForSeconds(duration);
+
+        _refs.Health.SetDamageReduction(0f);
     }
 }

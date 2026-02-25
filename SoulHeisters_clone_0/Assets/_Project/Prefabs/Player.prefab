@@ -2954,6 +2954,7 @@ GameObject:
   - component: {fileID: 1015196411262255818}
   - component: {fileID: 4972905238046737095}
   - component: {fileID: 2712090261239820130}
+  - component: {fileID: 5873371109896455584}
   - component: {fileID: 1015922752226886114}
   - component: {fileID: 81210415758367996}
   - component: {fileID: 6442773911870558331}
@@ -2963,7 +2964,6 @@ GameObject:
   - component: {fileID: 4574710463758964993}
   - component: {fileID: 766535830877786470}
   - component: {fileID: 6803841641132260390}
-  - component: {fileID: 5873371109896455584}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -3028,7 +3028,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3240785465
+  GlobalObjectIdHash: 2710540353
   InScenePlacedSourceGlobalObjectIdHash: 3240785465
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -3104,13 +3104,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firePoint: {fileID: 1337699552715644498}
-  serverBoltPrefab: {fileID: 1313409192446951871, guid: 9102a927445b6f047bccc489e28f9c19,
-    type: 3}
-  visualBoltPrefab: {fileID: 7319396081787358102, guid: bb1afded8a939b948afdf1e60cb42248,
-    type: 3}
-  projectileSpeed: 40
-  damage: 20
-  manaCost: 10
 --- !u!114 &4972905238046737095
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3142,6 +3135,25 @@ MonoBehaviour:
   regenRate: 15
   CurrentMana:
     m_InternalValue: 100
+--- !u!114 &5873371109896455584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5350357326776678617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb28a4cc5ec1424ebc7c98b081d9610, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startingSpells:
+  - {fileID: 11400000, guid: 9b7f9736fce800c4e90d9e88bdc1dec3, type: 2}
+  allSpellDefinitions:
+  - {fileID: 11400000, guid: 9b7f9736fce800c4e90d9e88bdc1dec3, type: 2}
+  - {fileID: 11400000, guid: 0ba38a3a36efb674fbac50923e04ff32, type: 2}
+  - {fileID: 11400000, guid: 1fc6d1e70a875f845947a3b1ad3ceb5d, type: 2}
+  - {fileID: 11400000, guid: 84e0671555ab42a4b83e2a7a83f83f8c, type: 2}
 --- !u!143 &1015922752226886114
 CharacterController:
   m_ObjectHideFlags: 0
@@ -3380,21 +3392,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 112b8ef7a9d9797469cc75620af7e0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &5873371109896455584
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5350357326776678617}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6cb28a4cc5ec1424ebc7c98b081d9610, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startingSpells:
-  - {fileID: 11400000, guid: 9b7f9736fce800c4e90d9e88bdc1dec3, type: 2}
-  - {fileID: 11400000, guid: 0ba38a3a36efb674fbac50923e04ff32, type: 2}
 --- !u!1 &5439388424402309081
 GameObject:
   m_ObjectHideFlags: 0

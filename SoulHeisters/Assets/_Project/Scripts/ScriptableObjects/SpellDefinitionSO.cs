@@ -3,14 +3,26 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Spells/Spell Definition")]
 public class SpellDefinitionSO : ScriptableObject
 {
-    public string spellName;
     public SpellType spellType;
 
+    [Header("Common")]
+    public float manaCost;
+    public float cooldown;
+
+    [Header("Projectile (Bolt)")]
     public GameObject serverPrefab;
     public GameObject visualPrefab;
-
-    public float damage;
-    public float manaCost;
-    public float fireRate;
     public float projectileSpeed;
+    public float damage;
+    public float fireRate;
+
+    [Header("Blink")]
+    public float range;
+
+    [Header("ArcBurst")]
+    public float radius;
+
+    [Header("SoulGuard")]
+    public float duration;
+    public float damageReduction;
 }

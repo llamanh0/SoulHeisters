@@ -9,29 +9,31 @@ public class BoltSpell : ISpell
     private GameObject _serverPrefab;
     private GameObject _visualPrefab;
 
+    private SpellType _spellType;
+
     private float _projectileSpeed;
     private float _damage;
     private float _manaCost;
-    private float _fireRate;
+    private float _fireRate = .33f;
 
     private float _nextFireTime;
 
     public BoltSpell(
+        SpellType spellType,
         Transform firePoint,
         GameObject serverPrefab,
         GameObject visualPrefab,
         float projectileSpeed,
         float damage,
-        float manaCost,
-        float fireRate)
+        float manaCost)
     {
+        _spellType = spellType;
         _firePoint = firePoint;
         _serverPrefab = serverPrefab;
         _visualPrefab = visualPrefab;
         _projectileSpeed = projectileSpeed;
         _damage = damage;
-        _manaCost = manaCost;
-        _fireRate = fireRate;
+        _manaCost = manaCost;;
     }
 
     public void Initialize(PlayerReferences refs)
@@ -42,6 +44,7 @@ public class BoltSpell : ISpell
 
     public void TryCast()
     {
+        Debug.Log($"[BoltSpell//Try Cast]: {_spellType}");
         if (!_combat.IsOwner) return;
 
         if (Time.time < _nextFireTime) return;
@@ -57,7 +60,8 @@ public class BoltSpell : ISpell
 
         SpawnLocalVisual(direction, rotation);
 
-        _refs.Combat.CastBoltServerRpc(
+        _refs.Combat.CastSpellServerRpc(
+            _spellType,
             targetPoint,
             _manaCost,
             _damage,

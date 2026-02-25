@@ -18,6 +18,8 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
+    private float _damageReductionPercent = 0.5f;
+
     public override void OnNetworkSpawn()
     {
         if (IsServer)
@@ -36,14 +38,19 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     {
         if (!IsServer || IsDead) return;
 
-        currentHealth.Value = Mathf.Clamp(currentHealth.Value - amount, 0, maxHealth);
+        float finalDamage = amount * (1f - _damageReductionPercent);
+
+        currentHealth.Value -= finalDamage;
 
         Debug.Log($"{OwnerClientId} hitted by {dealerClientId} => Dealed damage: {amount}");
 
-        if (IsDead)
+        if (IsDead || currentHealth.Value <= 0)
         {
+            currentHealth.Value = 0;
             DieClientRpc();
         }
+
+        
     }
     private void HandleHealthChanged(float previousValue, float newValue)
     {
@@ -54,5 +61,9 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     private void DieClientRpc()
     {
         OnDeath?.Invoke();
+    }
+    public void SetDamageReduction(float percent)
+    {
+        _damageReductionPercent = percent;
     }
 }

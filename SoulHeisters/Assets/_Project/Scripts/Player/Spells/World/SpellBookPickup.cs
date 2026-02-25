@@ -14,9 +14,7 @@ public class SpellBookPickup : NetworkBehaviour
 
         var inventory = playerRefs.SpellInventory;
 
-        if (inventory == null) return;
-
-        inventory.AddSpellServerRpc(spellDefinition.spellType);
+        inventory.UnlockSpellClientRpc(spellDefinition.spellType, playerRefs.Combat.OwnerClientId);
 
         GetComponent<NetworkObject>().Despawn();
     }

@@ -5,6 +5,7 @@ using UnityEngine;
 public class SpellInventory : NetworkBehaviour
 {
     [SerializeField] private List<SpellDefinitionSO> startingSpells;
+    [SerializeField] private List<SpellDefinitionSO> allSpellDefinitions;
 
     private List<ISpell> _runtimeSpells = new();
     private int _currentIndex;
@@ -13,13 +14,10 @@ public class SpellInventory : NetworkBehaviour
 
     public ISpell CurrentSpell => _runtimeSpells.Count > 0 ? _runtimeSpells[_currentIndex] : null;
 
-    private void Awake()
-    {
-        _refs = GetComponent<PlayerReferences>();
-    }
-
     public override void OnNetworkSpawn()
     {
+        _refs = GetComponent<PlayerReferences>();
+
         if (!IsOwner) return;
 
         foreach (var def in startingSpells)
@@ -27,13 +25,44 @@ public class SpellInventory : NetworkBehaviour
             AddSpell(def);
         }
     }
-
     public void AddSpell(SpellDefinitionSO def)
     {
-        ISpell spell = SpellFactory.CreateSpell(def, _refs);
-        spell.Initialize(_refs);
+        if (def == null)
+        {
+            Debug.LogError("SpellDefinition NULL");
+            return;
+        }
 
+        if (_refs == null)
+        {
+            Debug.LogError("_refs NULL");
+            return;
+        }
+
+        ISpell spell = SpellFactory.CreateSpell(def, _refs);
+
+        if (spell == null)
+        {
+            Debug.LogError($"SpellFactory returned NULL for {def.spellType}");
+            return;
+        }
+
+        spell.Initialize(_refs);
         _runtimeSpells.Add(spell);
+
+        Debug.Log($"Spell added: {def.spellType}");
+    }
+
+    [ClientRpc]
+    public void UnlockSpellClientRpc(SpellType type, ulong targetClientId)
+    {
+        Debug.Log($"RPC received on client {NetworkManager.Singleton.LocalClientId}");
+        if (NetworkManager.Singleton.LocalClientId != targetClientId)
+            return;
+
+        var def = FindSpellDefinition(type);
+
+        AddSpell(def);
     }
 
     private void Update()
@@ -51,5 +80,17 @@ public class SpellInventory : NetworkBehaviour
         if (index >= _runtimeSpells.Count) return;
 
         _currentIndex = index;
+
+        Debug.Log($"Switch requested: {index}");
+    }
+
+    public SpellDefinitionSO FindSpellDefinition(SpellType type)
+    {
+        var def = allSpellDefinitions.Find(x => x.spellType == type);
+
+        if (def == null)
+            Debug.LogError($"SpellDefinition not found for type {type}");
+
+        return def;
     }
 }
