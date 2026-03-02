@@ -27,7 +27,8 @@ public static class SpellFactory
                     def.radius,
                     def.damage,
                     def.manaCost,
-                    def.cooldown);
+                    def.cooldown,
+                    def.visualPrefab);
 
             case SpellType.SoulGuard:
                 return new SoulGuardSpell(

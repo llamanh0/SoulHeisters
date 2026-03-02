@@ -1,6 +1,7 @@
 ﻿using Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInputHandler))]
@@ -38,6 +39,7 @@ public class PlayerLocomotion : NetworkBehaviour
 
     // Physic Vars
     private Vector3 _playerVelocity;
+    private Vector3 _moveDirection;
     private bool _isGrounded;
 
     private void Awake()
@@ -117,17 +119,17 @@ public class PlayerLocomotion : NetworkBehaviour
         camForward.Normalize();
         camRight.Normalize();
 
-        Vector3 moveDirection = (camForward * inputVector.y + camRight * inputVector.x).normalized;
+        _moveDirection = (camForward * inputVector.y + camRight * inputVector.x).normalized;
 
-        if (moveDirection != Vector3.zero)
+        if (_moveDirection != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(_moveDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
             _netVisualRotationY.Value = transform.eulerAngles.y;
         }
 
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
-        _controller.Move(moveDirection * currentSpeed * Time.deltaTime);
+        _controller.Move(_moveDirection * currentSpeed * Time.deltaTime);
 
         CurrentMoveSpeed = inputVector.magnitude * currentSpeed;
     }
@@ -176,5 +178,11 @@ public class PlayerLocomotion : NetworkBehaviour
         if (lfAngle < -360f) lfAngle += 360f;
         if (lfAngle > 360f) lfAngle -= 360f;
         return Mathf.Clamp(lfAngle, lfMin, lfMax);
+    }
+
+    public void ResetVelocity()
+    {
+        _playerVelocity.y = 0f;
+        _moveDirection = Vector3.zero;
     }
 }

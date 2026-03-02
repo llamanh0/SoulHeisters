@@ -41,8 +41,7 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         float finalDamage = amount * (1f - _damageReductionPercent);
 
         currentHealth.Value -= finalDamage;
-
-        Debug.Log($"{OwnerClientId} hitted by {dealerClientId} => Dealed damage: {amount}");
+        ShowDamageClientRpc(finalDamage);
 
         if (IsDead || currentHealth.Value <= 0)
         {
@@ -65,5 +64,13 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     public void SetDamageReduction(float percent)
     {
         _damageReductionPercent = percent;
+    }
+
+    [ClientRpc]
+    private void ShowDamageClientRpc(float damage)
+    {
+        Vector3 spawnPos = transform.position + Vector3.up * 2f;
+
+        DamageNumberManager.Instance.SpawnDamageNumber(spawnPos, damage);
     }
 }

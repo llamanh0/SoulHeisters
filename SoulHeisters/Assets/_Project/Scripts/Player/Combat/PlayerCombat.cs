@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlayerCombat : NetworkBehaviour
 {
@@ -9,13 +11,15 @@ public class PlayerCombat : NetworkBehaviour
 
     public Transform FirePoint => firePoint;
 
+    [SerializeField] private GameObject blinkVFX;
+    [SerializeField] private GameObject arcBurstVFX;
+    [SerializeField] private GameObject soulGuardVFX;
+
     private PlayerReferences _refs;
-    private SpellInventory _inventory;
 
     private void Awake()
     {
         _refs = GetComponent<PlayerReferences>();
-        _inventory = GetComponent<SpellInventory>();
     }
 
     private void Update()
@@ -24,7 +28,12 @@ public class PlayerCombat : NetworkBehaviour
 
         if (_refs.Input.FireInput)
         {
-            _refs.SpellInventory.CurrentSpell?.TryCast();
+            var spell = _refs.SpellInventory.CurrentSpell;
+            if (spell == null) return;
+
+            var result = spell.TryCast();
+
+            _refs.SpellInventory.HandleCastResult(result);
         }
     }
 
@@ -101,8 +110,37 @@ public class PlayerCombat : NetworkBehaviour
         if (!_refs.Mana.TryConsume(manaCost))
             return;
 
-        transform.position = targetPosition;
+        ApproveBlinkClientRpc(targetPosition, OwnerClientId);
+        BlinkVFXClientRpc(targetPosition);
     }
+
+    [ClientRpc]
+    private void ApproveBlinkClientRpc(Vector3 targetPosition, ulong ownerId)
+    {
+        if (NetworkManager.Singleton.LocalClientId != ownerId)
+            return;
+
+        var netTransform = GetComponent<NetworkTransform>();
+
+        if (netTransform != null)
+        {
+            netTransform.Teleport(
+                targetPosition,
+                transform.rotation,
+                transform.localScale);
+        }
+
+        var controller = GetComponent<CharacterController>();
+        if (controller != null)
+        {
+            controller.enabled = false;
+            controller.enabled = true;
+        }
+
+        _refs.Locomotion.ResetVelocity();
+    }
+
+    [ClientRpc] private void BlinkVFXClientRpc(Vector3 position) { Instantiate(blinkVFX, position, Quaternion.identity); }
 
     [ServerRpc]
     public void CastArcBurstServerRpc(float radius, float damage, float manaCost)
@@ -114,12 +152,22 @@ public class PlayerCombat : NetworkBehaviour
 
         foreach (var hit in hits)
         {
+            if (hit.TryGetComponent<NetworkObject>(out var netObj))
+            {
+                if (netObj.OwnerClientId == OwnerClientId)
+                    continue;
+            }
+
             if (hit.TryGetComponent<IDamageable>(out var dmg))
             {
                 dmg.TakeDamage(damage, OwnerClientId);
             }
         }
+
+        ArcBurstVFXClientRpc();
     }
+
+    [ClientRpc] private void ArcBurstVFXClientRpc() { Instantiate(arcBurstVFX, transform.position - new Vector3(0f, 7f, 0f), Quaternion.identity); }
 
     [ServerRpc]
     public void CastSoulGuardServerRpc(float duration, float damageReduction, float manaCost)
@@ -128,6 +176,14 @@ public class PlayerCombat : NetworkBehaviour
             return;
 
         StartCoroutine(ApplyDamageReduction(duration, damageReduction));
+        SoulGuardVFXClientRpc(duration);
+    }
+
+    [ClientRpc]
+    private void SoulGuardVFXClientRpc(float duration)  
+    {
+        //Instantiate(soulGuardVFX, transform.position, Quaternion.identity);
+        //Invoke(nameof(Destroy),duration);
     }
 
     private IEnumerator ApplyDamageReduction(float duration, float reduction)

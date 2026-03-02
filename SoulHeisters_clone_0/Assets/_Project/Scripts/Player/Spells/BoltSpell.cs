@@ -14,9 +14,13 @@ public class BoltSpell : ISpell
     private float _projectileSpeed;
     private float _damage;
     private float _manaCost;
-    private float _fireRate = .33f;
+    private float _cooldown = .33f;
 
     private float _nextFireTime;
+    private float _lastCastTime;
+
+    public float Cooldown => _cooldown;
+    public float LastCastTime => _lastCastTime;
 
     public BoltSpell(
         SpellType spellType,
@@ -42,17 +46,19 @@ public class BoltSpell : ISpell
         _combat = refs.Combat;
     }
 
-    public void TryCast()
+    public SpellCastResult TryCast()
     {
-        Debug.Log($"[BoltSpell//Try Cast]: {_spellType}");
-        if (!_combat.IsOwner) return;
+        if (!_combat.IsOwner)
+            return SpellCastResult.OnCooldown;
 
-        if (Time.time < _nextFireTime) return;
+        if (Time.time < _nextFireTime)
+            return SpellCastResult.OnCooldown;
 
         if (_refs.Mana.CurrentMana.Value < _manaCost)
-            return;
+            return SpellCastResult.NotEnoughMana;
 
-        _nextFireTime = Time.time + _fireRate;
+        _nextFireTime = Time.time + _cooldown;
+        _lastCastTime = Time.time;
 
         Vector3 targetPoint = GetCrosshairHitPoint();
         Vector3 direction = (targetPoint - _firePoint.position).normalized;
@@ -66,6 +72,8 @@ public class BoltSpell : ISpell
             _manaCost,
             _damage,
             _projectileSpeed);
+
+        return SpellCastResult.Success;
     }
 
     private void SpawnLocalVisual(Vector3 direction, Quaternion rotation)

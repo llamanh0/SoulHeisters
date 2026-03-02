@@ -6,6 +6,7 @@ public class SpellInventory : NetworkBehaviour
 {
     [SerializeField] private List<SpellDefinitionSO> startingSpells;
     [SerializeField] private List<SpellDefinitionSO> allSpellDefinitions;
+    [SerializeField] private SpellSlotUI[] spellSlots;
 
     private List<ISpell> _runtimeSpells = new();
     private int _currentIndex;
@@ -24,39 +25,26 @@ public class SpellInventory : NetworkBehaviour
         {
             AddSpell(def);
         }
+
+        RefreshUI();
     }
     public void AddSpell(SpellDefinitionSO def)
     {
-        if (def == null)
-        {
-            Debug.LogError("SpellDefinition NULL");
-            return;
-        }
-
-        if (_refs == null)
-        {
-            Debug.LogError("_refs NULL");
-            return;
-        }
+        if (def == null && _refs == null) return;
 
         ISpell spell = SpellFactory.CreateSpell(def, _refs);
 
-        if (spell == null)
-        {
-            Debug.LogError($"SpellFactory returned NULL for {def.spellType}");
-            return;
-        }
+        if (spell == null) return;
 
         spell.Initialize(_refs);
         _runtimeSpells.Add(spell);
 
-        Debug.Log($"Spell added: {def.spellType}");
+        RefreshUI();
     }
 
     [ClientRpc]
     public void UnlockSpellClientRpc(SpellType type, ulong targetClientId)
     {
-        Debug.Log($"RPC received on client {NetworkManager.Singleton.LocalClientId}");
         if (NetworkManager.Singleton.LocalClientId != targetClientId)
             return;
 
@@ -81,16 +69,42 @@ public class SpellInventory : NetworkBehaviour
 
         _currentIndex = index;
 
-        Debug.Log($"Switch requested: {index}");
+        Debug.Log($"Switch: {index}");
     }
 
     public SpellDefinitionSO FindSpellDefinition(SpellType type)
     {
         var def = allSpellDefinitions.Find(x => x.spellType == type);
 
-        if (def == null)
-            Debug.LogError($"SpellDefinition not found for type {type}");
-
         return def;
+    }
+
+    private void RefreshUI()
+    {
+        for (int i = 0; i < spellSlots.Length; i++)
+        {
+            if (i < _runtimeSpells.Count)
+            {
+                spellSlots[i].gameObject.SetActive(true);
+                spellSlots[i].Setup(_runtimeSpells[i]);
+            }
+            else
+            {
+                spellSlots[i].gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public void HandleCastResult(SpellCastResult result)
+    {
+        if (!IsOwner) return;
+
+        if (result == SpellCastResult.NotEnoughMana)
+        {
+            int index = _currentIndex;
+
+            if (index < spellSlots.Length)
+                spellSlots[index].PlayNotEnoughManaFeedback();
+        }
     }
 }

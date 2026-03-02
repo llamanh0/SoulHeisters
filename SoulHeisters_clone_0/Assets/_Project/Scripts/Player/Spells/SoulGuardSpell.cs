@@ -11,6 +11,10 @@ public class SoulGuardSpell : ISpell
     private float _cooldown;
 
     private float _nextCastTime;
+    private float _lastCastTime;
+
+    public float Cooldown => _cooldown;
+    public float LastCastTime => _lastCastTime;
 
     public SoulGuardSpell(float duration, float damageReduction, float manaCost, float cooldown)
     {
@@ -25,15 +29,22 @@ public class SoulGuardSpell : ISpell
         _refs = refs;
         _combat = refs.Combat;
     }
-
-    public void TryCast()
+    public SpellCastResult TryCast()
     {
-        if (!_combat.IsOwner) return;
-        if (Time.time < _nextCastTime) return;
-        if (_refs.Mana.CurrentMana.Value < _manaCost) return;
+        if (!_combat.IsOwner)
+            return SpellCastResult.OnCooldown;
+
+        if (Time.time < _nextCastTime)
+            return SpellCastResult.OnCooldown;
+
+        if (_refs.Mana.CurrentMana.Value < _manaCost)
+            return SpellCastResult.NotEnoughMana;
 
         _nextCastTime = Time.time + _cooldown;
+        _lastCastTime = Time.time;
 
         _combat.CastSoulGuardServerRpc(_duration, _damageReduction, _manaCost);
+
+        return SpellCastResult.Success;
     }
 }
