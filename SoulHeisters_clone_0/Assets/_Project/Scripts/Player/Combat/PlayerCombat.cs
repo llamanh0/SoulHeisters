@@ -2,7 +2,6 @@
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PlayerCombat : NetworkBehaviour
 {
@@ -182,10 +181,15 @@ public class PlayerCombat : NetworkBehaviour
     [ClientRpc]
     private void SoulGuardVFXClientRpc(float duration)  
     {
-        //Instantiate(soulGuardVFX, transform.position, Quaternion.identity);
-        //Invoke(nameof(Destroy),duration);
+        StartCoroutine(nameof(WaitForSoulGuardDuration), duration);
     }
 
+    private IEnumerator WaitForSoulGuardDuration(float duration)
+    {
+        soulGuardVFX.SetActive(true);
+        yield return new WaitForSeconds(duration);
+        soulGuardVFX.SetActive(false);
+    }
     private IEnumerator ApplyDamageReduction(float duration, float reduction)
     {
         _refs.Health.SetDamageReduction(reduction);
