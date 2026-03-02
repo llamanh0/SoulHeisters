@@ -16,7 +16,7 @@ public class PlayerDeathHandler : NetworkBehaviour
     private void Awake()
     {
         _refs = GetComponent<PlayerReferences>();
-        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
+        if (_refs == null) Debug.LogError("[PlayerDeathHandler] PlayerReferences can not be find!");
     }
 
     public override void OnNetworkSpawn()

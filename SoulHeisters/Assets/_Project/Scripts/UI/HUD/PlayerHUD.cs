@@ -23,7 +23,7 @@ public class PlayerHUD : NetworkBehaviour
     private void Awake()
     {
         _refs = GetComponent<PlayerReferences>();
-        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
+        if (_refs == null) Debug.LogError("[PlayerHUD] PlayerReferences can not be find!");
     }
 
     public override void OnNetworkSpawn()

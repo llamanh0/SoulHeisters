@@ -9,12 +9,8 @@ public static class SpellFactory
             case SpellType.Bolt:
                 return new BoltSpell(
                     def.spellType,
-                    refs.Combat.FirePoint,
-                    def.serverPrefab,
-                    def.visualPrefab,
-                    def.projectileSpeed,
-                    def.damage,
-                    def.manaCost);
+                    def.manaCost,
+                    def.cooldown);
 
             case SpellType.Blink:
                 return new BlinkSpell(

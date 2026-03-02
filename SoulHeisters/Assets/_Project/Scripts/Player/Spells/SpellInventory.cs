@@ -68,8 +68,6 @@ public class SpellInventory : NetworkBehaviour
         if (index >= _runtimeSpells.Count) return;
 
         _currentIndex = index;
-
-        Debug.Log($"Switch: {index}");
     }
 
     public SpellDefinitionSO FindSpellDefinition(SpellType type)

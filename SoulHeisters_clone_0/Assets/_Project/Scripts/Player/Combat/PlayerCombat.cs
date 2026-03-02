@@ -10,6 +10,7 @@ public class PlayerCombat : NetworkBehaviour
 
     public Transform FirePoint => firePoint;
 
+    [SerializeField] private GameObject boltVFX;
     [SerializeField] private GameObject blinkVFX;
     [SerializeField] private GameObject arcBurstVFX;
     [SerializeField] private GameObject soulGuardVFX;
@@ -36,75 +37,73 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    // SERVER AUTHORITY
-    [ServerRpc]
-    public void CastSpellServerRpc(
-    SpellType spellType,
-    Vector3 targetPoint,
-    float manaCost,
-    float damage,
-    float projectileSpeed)
+    public void ExecuteSpell(SpellType type)
+    {
+        switch (type)
+        {
+            case SpellType.Bolt:
+                ExecuteBolt();
+                break;
+        }
+    }
+    private void ExecuteBolt()
+    {
+        var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
+        if (def == null) return;
+
+        Vector3 targetPoint = GetCrosshairHitPoint();
+
+        CastBoltServerRpc(
+            targetPoint,
+            def.manaCost,
+            def.damage,
+            def.projectileSpeed);
+    }
+
+    #region Server
+
+    [ServerRpc] public void CastBoltServerRpc(Vector3 targetPoint, float manaCost, float damage, float projectileSpeed)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
 
-        var def = _refs.SpellInventory.FindSpellDefinition(spellType);
+        var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
 
         if (def == null) return;
 
-        Vector3 direction =
-            (targetPoint - firePoint.position).normalized;
+        Vector3 direction = (targetPoint - firePoint.position).normalized;
 
-        Quaternion rotation =
-            Quaternion.LookRotation(direction);
+        Quaternion rotation = Quaternion.LookRotation(direction);
 
-        GameObject serverObj =
-            Instantiate(def.serverPrefab,
-                        firePoint.position,
-                        rotation);
+        GameObject serverObj = Instantiate(def.serverPrefab, firePoint.position, rotation);
 
-        var projectile =
-            serverObj.GetComponent<ProjectileController>();
+        var projectile = serverObj.GetComponent<ProjectileController>();
 
-        projectile.Initialize(direction,
-                              projectileSpeed,
-                              damage,
-                              OwnerClientId);
+        projectile.Initialize(direction, projectileSpeed, damage, OwnerClientId);
 
         serverObj.GetComponent<NetworkObject>().Spawn();
 
-        CastSpellClientRpc(
-            spellType,
+        CastBoltClientRpc(
             firePoint.position,
             rotation,
             direction,
             projectileSpeed);
     }
 
-    [ClientRpc]
-    private void CastSpellClientRpc(
-    SpellType spellType,
-    Vector3 pos,
-    Quaternion rot,
-    Vector3 dir,
-    float projectileSpeed)
+    [ClientRpc] private void CastBoltClientRpc(Vector3 pos, Quaternion rot, Vector3 dir, float projectileSpeed)
     {
-        if (IsOwner) return;
-
-        var def = _refs.SpellInventory.FindSpellDefinition(spellType);
+        var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
         if (def == null) return;
 
         GameObject visualObj =
-            Instantiate(def.visualPrefab, pos, rot);
+           Instantiate(def.visualPrefab, pos, rot);
 
         if (visualObj.TryGetComponent<Rigidbody>(out var rb))
             rb.velocity = dir * projectileSpeed;
-
         Destroy(visualObj, 5f);
     }
 
-    [ServerRpc]
-    public void CastBlinkServerRpc(Vector3 targetPosition, float manaCost)
+    [ServerRpc] public void CastBlinkServerRpc(Vector3 targetPosition, float manaCost)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
@@ -113,8 +112,7 @@ public class PlayerCombat : NetworkBehaviour
         BlinkVFXClientRpc(targetPosition);
     }
 
-    [ClientRpc]
-    private void ApproveBlinkClientRpc(Vector3 targetPosition, ulong ownerId)
+    [ClientRpc] private void ApproveBlinkClientRpc(Vector3 targetPosition, ulong ownerId)
     {
         if (NetworkManager.Singleton.LocalClientId != ownerId)
             return;
@@ -139,10 +137,10 @@ public class PlayerCombat : NetworkBehaviour
         _refs.Locomotion.ResetVelocity();
     }
 
-    [ClientRpc] private void BlinkVFXClientRpc(Vector3 position) { Instantiate(blinkVFX, position, Quaternion.identity); }
+    [ClientRpc] private void BlinkVFXClientRpc(Vector3 position) 
+    { Instantiate(blinkVFX, position, Quaternion.identity); }
 
-    [ServerRpc]
-    public void CastArcBurstServerRpc(float radius, float damage, float manaCost)
+    [ServerRpc] public void CastArcBurstServerRpc(float radius, float damage, float manaCost)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
@@ -166,10 +164,12 @@ public class PlayerCombat : NetworkBehaviour
         ArcBurstVFXClientRpc();
     }
 
-    [ClientRpc] private void ArcBurstVFXClientRpc() { Instantiate(arcBurstVFX, transform.position - new Vector3(0f, 7f, 0f), Quaternion.identity); }
+    [ClientRpc] private void ArcBurstVFXClientRpc() 
+    { 
+        Instantiate(arcBurstVFX, transform.position - new Vector3(0f, 7f, 0f), Quaternion.identity); 
+    }
 
-    [ServerRpc]
-    public void CastSoulGuardServerRpc(float duration, float damageReduction, float manaCost)
+    [ServerRpc] public void CastSoulGuardServerRpc(float duration, float damageReduction, float manaCost)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
@@ -178,11 +178,14 @@ public class PlayerCombat : NetworkBehaviour
         SoulGuardVFXClientRpc(duration);
     }
 
-    [ClientRpc]
-    private void SoulGuardVFXClientRpc(float duration)  
+    [ClientRpc] private void SoulGuardVFXClientRpc(float duration)  
     {
         StartCoroutine(nameof(WaitForSoulGuardDuration), duration);
     }
+
+    #endregion
+
+    #region IEnumerator
 
     private IEnumerator WaitForSoulGuardDuration(float duration)
     {
@@ -198,4 +201,21 @@ public class PlayerCombat : NetworkBehaviour
 
         _refs.Health.SetDamageReduction(0f);
     }
+
+    #endregion
+
+    #region Helper
+
+    private Vector3 GetCrosshairHitPoint()
+    {
+        Camera cam = Camera.main;
+        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+            return hit.point;
+
+        return ray.GetPoint(100f);
+    }
+
+    #endregion
 }

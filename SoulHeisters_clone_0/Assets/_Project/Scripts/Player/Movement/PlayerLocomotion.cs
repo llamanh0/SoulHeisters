@@ -46,7 +46,7 @@ public class PlayerLocomotion : NetworkBehaviour
     {
         _controller = GetComponent<CharacterController>();
         _refs = GetComponentInParent<PlayerReferences>();
-        if (_refs == null) Debug.LogError("PlayerReferences can not be find!");
+        if (_refs == null) Debug.LogError("[PlayerLocomotion] PlayerReferences can not be find!");
     }
 
     public override void OnNetworkSpawn()

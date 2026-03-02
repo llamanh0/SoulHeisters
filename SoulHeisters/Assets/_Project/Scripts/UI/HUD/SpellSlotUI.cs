@@ -11,7 +11,6 @@ public class SpellSlotUI : MonoBehaviour
 
     public void Setup(ISpell spell)
     {
-        Debug.Log($"SpellSlotUI: SETUP {spell}");
         _spell = spell;
     }
 
