@@ -8,7 +8,6 @@ public static class SpellFactory
         {
             case SpellType.Bolt:
                 return new BoltSpell(
-                    def.spellType,
                     def.manaCost,
                     def.cooldown);
 
@@ -23,8 +22,7 @@ public static class SpellFactory
                     def.radius,
                     def.damage,
                     def.manaCost,
-                    def.cooldown,
-                    def.visualPrefab);
+                    def.cooldown);
 
             case SpellType.SoulGuard:
                 return new SoulGuardSpell(

@@ -5,15 +5,17 @@ using UnityEngine;
 
 public class PlayerCombat : NetworkBehaviour
 {
-    [Header("Bolt Config")]
     [SerializeField] private Transform firePoint;
-
     public Transform FirePoint => firePoint;
 
+    [Header("VFXs")]
     [SerializeField] private GameObject boltVFX;
     [SerializeField] private GameObject blinkVFX;
     [SerializeField] private GameObject arcBurstVFX;
     [SerializeField] private GameObject soulGuardVFX;
+
+    [Header("Server Prefab")]
+    [SerializeField] private GameObject boltServerPrefab;
 
     private PlayerReferences _refs;
 
@@ -36,17 +38,7 @@ public class PlayerCombat : NetworkBehaviour
             _refs.SpellInventory.HandleCastResult(result);
         }
     }
-
-    public void ExecuteSpell(SpellType type)
-    {
-        switch (type)
-        {
-            case SpellType.Bolt:
-                ExecuteBolt();
-                break;
-        }
-    }
-    private void ExecuteBolt()
+    public void ExecuteBolt()
     {
         var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
         if (def == null) return;
@@ -67,15 +59,11 @@ public class PlayerCombat : NetworkBehaviour
         if (!_refs.Mana.TryConsume(manaCost))
             return;
 
-        var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
-
-        if (def == null) return;
-
         Vector3 direction = (targetPoint - firePoint.position).normalized;
 
         Quaternion rotation = Quaternion.LookRotation(direction);
 
-        GameObject serverObj = Instantiate(def.serverPrefab, firePoint.position, rotation);
+        GameObject serverObj = Instantiate(boltServerPrefab, firePoint.position, rotation);
 
         var projectile = serverObj.GetComponent<ProjectileController>();
 
@@ -92,14 +80,10 @@ public class PlayerCombat : NetworkBehaviour
 
     [ClientRpc] private void CastBoltClientRpc(Vector3 pos, Quaternion rot, Vector3 dir, float projectileSpeed)
     {
-        var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
-        if (def == null) return;
+        GameObject visualObj = Instantiate(boltVFX, pos, rot);
 
-        GameObject visualObj =
-           Instantiate(def.visualPrefab, pos, rot);
+        if (visualObj.TryGetComponent<Rigidbody>(out var rb)) { rb.velocity = dir * projectileSpeed; }
 
-        if (visualObj.TryGetComponent<Rigidbody>(out var rb))
-            rb.velocity = dir * projectileSpeed;
         Destroy(visualObj, 5f);
     }
 

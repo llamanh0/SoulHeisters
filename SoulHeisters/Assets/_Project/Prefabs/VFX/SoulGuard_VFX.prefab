@@ -9681,7 +9681,7 @@ GameObject:
   - component: {fileID: 5196375384026984106}
   - component: {fileID: 6561938323948747357}
   m_Layer: 0
-  m_Name: SoulGuard
+  m_Name: SoulGuard_VFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

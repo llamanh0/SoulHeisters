@@ -9,12 +9,9 @@ public class SpellDefinitionSO : ScriptableObject
     public float manaCost;
     public float cooldown;
 
-    [Header("Projectile (Bolt)")]
-    public GameObject serverPrefab;
-    public GameObject visualPrefab;
-    public float projectileSpeed;
+    [Header("Bolt")]
     public float damage;
-    public float fireRate;
+    public float projectileSpeed;
 
     [Header("Blink")]
     public float range;
