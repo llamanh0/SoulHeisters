@@ -3106,6 +3106,7 @@ GameObject:
   - component: {fileID: 6705492764302282742}
   - component: {fileID: 2544488462642630276}
   - component: {fileID: 1015196411262255818}
+  - component: {fileID: 6834368718339896753}
   - component: {fileID: 4972905238046737095}
   - component: {fileID: 2712090261239820130}
   - component: {fileID: 5873371109896455584}
@@ -3183,7 +3184,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3240785465
+  GlobalObjectIdHash: 2710540353
   InScenePlacedSourceGlobalObjectIdHash: 3240785465
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -3266,6 +3267,18 @@ MonoBehaviour:
   soulGuardVFX: {fileID: 9124661401445418829}
   boltServerPrefab: {fileID: 1313409192446951871, guid: 9102a927445b6f047bccc489e28f9c19,
     type: 3}
+--- !u!114 &6834368718339896753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5350357326776678617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f47f94d14ce14646a2fdcce3c6541e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &4972905238046737095
 MonoBehaviour:
   m_ObjectHideFlags: 0

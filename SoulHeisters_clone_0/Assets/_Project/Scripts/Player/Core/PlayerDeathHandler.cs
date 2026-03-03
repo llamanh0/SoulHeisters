@@ -1,6 +1,6 @@
-﻿using Unity.Netcode;
+﻿using Cinemachine;
+using Unity.Netcode;
 using UnityEngine;
-using Cinemachine;
 
 public class PlayerDeathHandler : NetworkBehaviour
 {
@@ -46,19 +46,15 @@ public class PlayerDeathHandler : NetworkBehaviour
 
     private void HandleDeath()
     {
-        if (_refs.Visual != null)
-        {
-            _refs.Visual.HandleDeathVisual();
-        }
+        // Visuals
+        _refs.Visual.HandleDeathVisual();
 
+        // Disable player scripts (movement, combat, etc.)
         foreach (var script in scriptsToDisable)
-        {
             if (script != null) script.enabled = false;
-        }
 
+        // Camera switch
         if (IsOwner && deathCamera != null)
-        {
             deathCamera.Priority = 20;
-        }
     }
 }

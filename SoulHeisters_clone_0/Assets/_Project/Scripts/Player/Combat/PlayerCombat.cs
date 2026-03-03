@@ -26,8 +26,11 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        // Return when => [not playing], [not owner]
+        // if (GameStateManager.Instance.CurrentState != GameState.Playing) return;
         if (!IsOwner) return;
 
+        // If player shoots
         if (_refs.Input.FireInput)
         {
             var spell = _refs.SpellInventory.CurrentSpell;

@@ -1,7 +1,6 @@
 ﻿using Cinemachine;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInputHandler))]

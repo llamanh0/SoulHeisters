@@ -9,8 +9,10 @@ public class SpellDefinitionSO : ScriptableObject
     public float manaCost;
     public float cooldown;
 
-    [Header("Bolt")]
+    [Header("Damage")]
     public float damage;
+
+    [Header("Bolt")]
     public float projectileSpeed;
 
     [Header("Blink")]

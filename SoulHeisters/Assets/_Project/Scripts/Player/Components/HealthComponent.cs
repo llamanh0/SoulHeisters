@@ -11,21 +11,18 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
-    public float CurrentHealth => currentHealth.Value;
+    public float CurrentHealth => currentHealth.Value; // Main Value (reflesh both Server and Clients)
 
     public bool IsDead => currentHealth.Value <= 0;
 
     public event Action<float, float> OnHealthChanged;
     public event Action OnDeath;
 
-    private float _damageReductionPercent = 0.5f;
+    private float _damageReductionPercent = 0;
 
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-        {
-            currentHealth.Value = maxHealth;
-        }
+        if (IsServer) { currentHealth.Value = maxHealth; }
 
         currentHealth.OnValueChanged += HandleHealthChanged;
     }
@@ -41,36 +38,17 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         float finalDamage = amount * (1f - _damageReductionPercent);
 
         currentHealth.Value -= finalDamage;
-        ShowDamageClientRpc(finalDamage);
-
-        if (IsDead || currentHealth.Value <= 0)
-        {
-            currentHealth.Value = 0;
-            DieClientRpc();
-        }
-
-        
     }
     private void HandleHealthChanged(float previousValue, float newValue)
     {
         OnHealthChanged?.Invoke(previousValue, newValue);
+
+        // DIE
+        if (IsDead) { OnDeath?.Invoke(); currentHealth.Value = 0; }
     }
 
-    [ClientRpc]
-    private void DieClientRpc()
-    {
-        OnDeath?.Invoke();
-    }
     public void SetDamageReduction(float percent)
     {
         _damageReductionPercent = percent;
-    }
-
-    [ClientRpc]
-    private void ShowDamageClientRpc(float damage)
-    {
-        Vector3 spawnPos = transform.position + Vector3.up * 2f;
-
-        DamageNumberManager.Instance.SpawnDamageNumber(spawnPos, damage);
     }
 }
