@@ -48,27 +48,66 @@ public class ProjectileController : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Hasar ve carpma islemleri sadece server tarafinda calismali
         if (!IsServer || _hasHit) return;
 
-        // Vurulan objede NetworkObject var mi kontrol et
+        Debug.Log($"[Projectile] Trigger hit: {other.name}");
+
+        // Parent zincirini yazdir
+        PrintParentChain(other.transform);
+
+        // NetworkObject kontrolu (self-hit sadece player icin)
         NetworkObject netObj = other.GetComponentInParent<NetworkObject>();
         if (netObj != null)
         {
-            // Sahibini vurma (self damage'i engellemek icin)
-            if (netObj.OwnerClientId == _ownerId) return;
+            Debug.Log($"[Projectile] Hit has NetworkObject: {netObj.name}, OwnerId: {netObj.OwnerClientId}");
+
+            var playerRefs = netObj.GetComponent<PlayerReferences>();
+            if (playerRefs != null && netObj.OwnerClientId == _ownerId)
+            {
+                Debug.Log("[Projectile] Hit owner player itself, ignoring.");
+                return;
+            }
         }
 
         _hasHit = true;
 
-        // IDamageable arayuzune sahip bir component bul ve hasar uygula
+        // Once interface olarak IDamageable ara
         IDamageable damageable = other.GetComponentInParent<IDamageable>();
         if (damageable != null)
         {
+            var mb = damageable as MonoBehaviour;
+            Debug.Log($"[Projectile] IDamageable found (type {damageable.GetType().Name}) on object: {mb.gameObject.name}");
             damageable.TakeDamage(_damage, _ownerId);
+        }
+        else
+        {
+            // Sonra direkt HealthComponent ara
+            var health = other.GetComponentInParent<HealthComponent>();
+            if (health != null)
+            {
+                Debug.Log($"[Projectile] HealthComponent found directly on: {health.gameObject.name}");
+                health.TakeDamage(_damage, _ownerId);
+            }
+            else
+            {
+                Debug.Log("[Projectile] No IDamageable/HealthComponent found in parents.");
+            }
         }
 
         DestroyProjectile();
+    }
+
+    // DEBUG ICIN: parent zincirini yazdir
+    private void PrintParentChain(Transform t)
+    {
+        string chain = t.name;
+        Transform p = t.parent;
+        while (p != null)
+        {
+            chain = p.name + " -> " + chain;
+            p = p.parent;
+        }
+        Debug.Log("[Projectile] Parent chain: " + chain);
     }
 
     /// <summary>

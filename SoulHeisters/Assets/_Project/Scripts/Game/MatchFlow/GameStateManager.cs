@@ -35,6 +35,18 @@ public class GameStateManager : NetworkBehaviour
     /// <summary> Mac tamamen bittiginde tetiklenir. </summary>
     public System.Action OnMatchEnded;
 
+    [Header("Match Settings")]
+    /// <summary> Mac suresi degiskeni. </summary>
+    [SerializeField] 
+    private float matchDuration = 300f;
+
+    /// <summary>
+    /// Macin basladigi an (server Time.time degeri).
+    /// Sadece server doldurur.
+    /// </summary>
+    private float matchStartTime;
+
+
     private void Awake()
     {
         Instance = this;
@@ -87,6 +99,9 @@ public class GameStateManager : NetworkBehaviour
         // Kisa bir bekleme suresi (3 saniye)
         yield return new WaitForSeconds(3f);
 
+        // Mac baslangic zamanini kaydet (sadece server)
+        matchStartTime = Time.time;
+
         // Dis sistemlere macin basladigini bildir
         OnMatchStarted?.Invoke();
     }
@@ -119,12 +134,39 @@ public class GameStateManager : NetworkBehaviour
 
     /// <summary>
     /// Macin bitme kosulunu kontrol eder.
-    /// Simdilik herzaman false doner, yani mac hic bitmez.
-    /// Ilerde: zaman dolmasi, hedefe ulasilmasi vs. eklenebilir.
     /// </summary>
+    /// <returns> 
+    /// Macta gecen sure <see cref="matchDuration"/> degerinden
+    /// buyukse true, kucukse false.
+    /// </returns>
     private bool IsMatchFinished()
     {
-        // TODO: Mac bitis kosulu buraya eklenecek
+        if (!IsServer) return false;
+
+        // Mac basladiktan sonra gecen sure
+        float elapsed = Time.time - matchStartTime;
+
+        if (elapsed >= matchDuration)
+            return true;
+
         return false;
+    }
+
+    /// <summary>
+    /// Kalan mac suresini saniye cinsinden doner.
+    /// Sadece server dogru degeri hesaplar, client'lar asagi yukari deger gorur.
+    /// </summary>
+    public float GetRemainingTime()
+    {
+        // Match baslamamissa tam sureyi don
+        if (CurrentState != GameState.Playing)
+        {
+            return matchDuration;
+        }
+
+        float elapsed = Time.time - matchStartTime;
+        float remaining = matchDuration - elapsed;
+
+        return remaining;
     }
 }

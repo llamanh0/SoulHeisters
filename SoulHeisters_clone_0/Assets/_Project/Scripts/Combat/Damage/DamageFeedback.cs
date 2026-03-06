@@ -1,19 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Saglik degisimlerini dinleyerek hasar alindiginda ekranda
-/// hasar sayilari gosteren basit feedback sistemi.
-/// 
-/// Calisma mantigi:
-/// - HealthComponent.OnHealthChanged event'ine abone olur.
-/// - Sadece local owner olmayan objelerde (diger oyuncular veya mob'lar)
-///   hasar alindiginda DamageNumber spawn eder.
-/// 
-/// Not:
-/// - Bu script NetworkBehaviour oldugu icin IsOwner, bu entity'nin
-///   local client'a mi ait oldugunu gosterir.
-/// </summary>
 [RequireComponent(typeof(HealthComponent))]
 public class DamageFeedback : NetworkBehaviour
 {
@@ -28,6 +15,7 @@ public class DamageFeedback : NetworkBehaviour
     {
         if (health == null) return;
 
+        // Saglik degistiginde local olarak damage popup cikar.
         health.OnHealthChanged += HandleHealthChanged;
     }
 
@@ -39,27 +27,17 @@ public class DamageFeedback : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Saglik her degistiginde cagrilir.
-    /// Eger saglik azaldiysa ve bu entity local owner degilse,
-    /// ekranda hasar sayisi gosterilir.
-    /// </summary>
     private void HandleHealthChanged(float oldVal, float newVal)
     {
-        // Hasar alinmamis (artik saglik artmis) ise cik
+        // Heal veya degisiklik yoksa cik
         if (newVal >= oldVal) return;
-
-        // Kendi karakterimiz icin damage number gostermek istemiyorsak:
-        if (IsOwner) return;
+        if (DamageNumberManager.Instance == null) return;
 
         float damage = oldVal - newVal;
 
-        if (DamageNumberManager.Instance != null)
-        {
-            // Hasar sayisini, karakterin biraz ustunde spawn et
-            DamageNumberManager.Instance.SpawnDamageNumber(
-                transform.position + Vector3.up * 2f,
-                damage);
-        }
+        // Bu entity'nin biraz ustunde damage sayisi spawn et
+        DamageNumberManager.Instance.SpawnDamageNumber(
+            transform.position + Vector3.up * 2f,
+            damage);
     }
 }

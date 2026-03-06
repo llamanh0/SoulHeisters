@@ -24,8 +24,6 @@ public class PlayerDeathHandler : NetworkBehaviour
     private void Awake()
     {
         _refs = GetComponent<PlayerReferences>();
-        if (_refs == null)
-            Debug.LogError("[PlayerDeathHandler] PlayerReferences bulunamadi!");
     }
 
     public override void OnNetworkSpawn()

@@ -25,13 +25,11 @@ public class MobAIController : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        health = GetComponent<HealthComponent>();
-
-        // Bu mob oldugunde HandleDeath cagrilacak
-        if (health != null)
-        {
-            health.OnDeath += HandleDeath;
-        }
+        // health = GetComponent<HealthComponent>();
+        // if (health != null)
+        // {
+        //     health.OnDeath += HandleDeath;
+        // }
     }
 
     private void OnDestroy()
@@ -58,20 +56,11 @@ public class MobAIController : NetworkBehaviour
     }
 
     /// <summary>
-    /// Mob oldugunde cagrilan fonksiyon.
-    /// Su an burada NetworkObject despawn ediliyor.
-    /// 
-    /// Dikkat:
-    /// - Eger EntityLifecycleSystem de ayni objeyi despawn ediyorsa,
-    ///   bu fonksiyon cikarilmalidir. Cift despawn hatasina yol acabilir.
+    /// Artik EntityLifecycleSystem tarafindan yapiliyor
     /// </summary>
     private void HandleDeath()
     {
-        var netObj = GetComponent<NetworkObject>();
-        if (netObj != null && netObj.IsSpawned)
-        {
-            netObj.Despawn();
-        }
+        return;
     }
 
     /// <summary>

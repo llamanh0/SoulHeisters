@@ -43,11 +43,51 @@ public class PlayerStateMachine : MonoBehaviour
         ChangeState(IdleState);
     }
 
+    private void OnEnable()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.OnMatchEnded += HandleMatchEnded;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.OnMatchEnded -= HandleMatchEnded;
+        }
+    }
+
+    /// <summary>
+    /// Mac bittiginde cagrilir, oyuncunun state'ini sifirlar.
+    /// </summary>
+    private void HandleMatchEnded()
+    {
+        // Locomotion yoksa bir sey yapma
+        if (refs == null || refs.Locomotion == null) return;
+
+        // Dikey hizi sifirla ve hareketi durdur
+        refs.Locomotion.ResetVerticalVelocity();
+        refs.Locomotion.ForceStopMovement();
+
+        // Mantiksal olarak Idle state'ine don
+        ChangeState(IdleState);
+    }
+
     private void Update()
     {
-        // Network kontrolu: sadece owner olan client state makinesini isletir
         if (refs == null || refs.Locomotion == null) return;
+
+        // Sadece owner olan client state makinesini isletir
         if (!refs.Locomotion.IsSpawned || !refs.Locomotion.IsOwner) return;
+
+        // Oyun Playing durumunda degilse hareket/state calismasin
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState != GameState.Playing)
+        {
+            return;
+        }
 
         // Gravity her state'de calisir
         refs.Locomotion.ApplyGravity();
@@ -60,6 +100,12 @@ public class PlayerStateMachine : MonoBehaviour
     {
         if (refs == null || refs.Locomotion == null) return;
         if (!refs.Locomotion.IsSpawned || !refs.Locomotion.IsOwner) return;
+
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState != GameState.Playing)
+        {
+            return;
+        }
 
         CurrentState?.FixedTick();
     }
@@ -75,9 +121,5 @@ public class PlayerStateMachine : MonoBehaviour
         CurrentState?.Exit();
         CurrentState = newState;
         CurrentState?.Enter();
-
-#if UNITY_EDITOR
-        Debug.Log($"[PlayerStateMachine] State -> {newState.GetType().Name}");
-#endif
     }
 }

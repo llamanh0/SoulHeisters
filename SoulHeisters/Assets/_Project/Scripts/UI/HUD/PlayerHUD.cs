@@ -16,6 +16,9 @@ public class PlayerHUD : NetworkBehaviour
     [Header("UI References")]
     [SerializeField] private GameObject hudCanvas;
 
+    [Header("Match UI")]
+    [SerializeField] private TextMeshProUGUI matchTimerText;
+
     [Header("Health UI")]
     [SerializeField] private Image healthFill;
     [SerializeField] private TextMeshProUGUI healthText;
@@ -32,8 +35,13 @@ public class PlayerHUD : NetworkBehaviour
     private void Awake()
     {
         _refs = GetComponent<PlayerReferences>();
-        if (_refs == null)
-            Debug.LogError("[PlayerHUD] PlayerReferences bulunamadi!");
+    }
+
+    private void Update()
+    {
+        if (!IsOwner) return;
+
+        UpdateMatchTimerUI();
     }
 
     public override void OnNetworkSpawn()
@@ -96,5 +104,60 @@ public class PlayerHUD : NetworkBehaviour
 
         if (manaText != null)
             manaText.text = $"{Mathf.FloorToInt(currentMana)}";
+    }
+
+    /// <summary>
+    /// GameStateManager'dan kalan mac suresini okuyup HUD'e yazar.
+    /// Sadece Playing durumunda sure geriye sayar, diger durumlarda
+    /// farkli metinler gosterebilir.
+    /// </summary>
+    private void UpdateMatchTimerUI()
+    {
+        if (matchTimerText == null) return;
+        if (GameStateManager.Instance == null) return;
+
+        var gsm = GameStateManager.Instance;
+
+        switch (gsm.CurrentState)
+        {
+            case GameState.WaitingForPlayers:
+                matchTimerText.text = "Waiting for players...";
+                break;
+
+            case GameState.Starting:
+                matchTimerText.text = "Match starting...";
+                break;
+
+            case GameState.Playing:
+                // Burada kalan sureyi hesaplayacagiz
+                float remaining = GetRemainingMatchTime();
+                remaining = Mathf.Max(0f, remaining);
+
+                int minutes = Mathf.FloorToInt(remaining / 60f);
+                int seconds = Mathf.FloorToInt(remaining % 60f);
+
+                matchTimerText.text = $"{minutes:00}:{seconds:00}";
+                break;
+
+            case GameState.MatchEnded:
+                matchTimerText.text = "Match ended";
+                break;
+
+            default:
+                matchTimerText.text = "";
+                break;
+        }
+    }
+
+    /// <summary>
+    /// GameStateManager'dan kalan sureyi ceker.
+    /// Ayrica null kontrolu yapar.
+    /// </summary>
+    private float GetRemainingMatchTime()
+    {
+        if (GameStateManager.Instance == null)
+            return 0f;
+
+        return GameStateManager.Instance.GetRemainingTime();
     }
 }

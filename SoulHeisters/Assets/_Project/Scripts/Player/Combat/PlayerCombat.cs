@@ -42,6 +42,13 @@ public class PlayerCombat : NetworkBehaviour
         // Yalnizca owner olan client, input okuyup spell cast istegi yapabilir
         if (!IsOwner) return;
 
+        // Oyun Playing durumunda degilse combat/spell kapali
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState != GameState.Playing)
+        {
+            return;
+        }
+
         // Fire tusuna basili ise mevcut spell'i dene
         if (_refs.Input.FireInput)
         {
@@ -196,18 +203,19 @@ public class PlayerCombat : NetworkBehaviour
 
         foreach (var hit in hits)
         {
-            // NetworkObject varsa, owner ile ayniysa kendimizi atla
-            if (hit.TryGetComponent<NetworkObject>(out var netObj))
-            {
-                if (netObj.OwnerClientId == OwnerClientId)
-                    continue;
-            }
+            // IDamageable'i parent zincirinde ara
+            var damageable = hit.GetComponentInParent<IDamageable>();
+            if (damageable == null)
+                continue;
 
-            // IDamageable interface'ine sahip olanlara hasar uygula
-            if (hit.TryGetComponent<IDamageable>(out var dmg))
-            {
-                dmg.TakeDamage(damage, OwnerClientId);
-            }
+            // KENDI sagligimizi atla (self-hit'i kesin engelle)
+            if (ReferenceEquals(damageable, _refs.Health))
+                continue;
+
+            // Istersen burada da sadece Player'lar icin ek kontrol yapabilirsin,
+            // ama gerek yok, yukaridaki kontrol yeterli.
+
+            damageable.TakeDamage(damage, OwnerClientId);
         }
 
         ArcBurstVFXClientRpc();

@@ -65,26 +65,31 @@ public class PlayerVisualController : NetworkBehaviour
 
     /// <summary>
     /// Animator parametrelerini gunceller (speed, grounded, vertical velocity).
+    /// Oyun biterse Idle animasyonuna zorlar (speed ve Vertical Velocity degerini 0'a zorlar).
     /// </summary>
     private void UpdateAnimator()
     {
         if (animator == null) return;
 
+        bool isPlaying = GameStateManager.Instance == null ||
+                         GameStateManager.Instance.CurrentState == GameState.Playing;
+
         if (_refs.Locomotion != null)
         {
-            float speed = _refs.Locomotion.CurrentMoveSpeed;
+            float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
             animator.SetFloat(_speedParamID, speed, 0.1f, Time.deltaTime);
         }
 
         if (characterController != null)
         {
+            // Match bitmis olsa bile grounded bilgisini guncellemek sorun degil
             bool grounded = characterController.isGrounded;
             animator.SetBool(_isGroundedParamID, grounded);
         }
 
         if (_refs.Locomotion != null)
         {
-            float verticalVelocity = _refs.Locomotion.VerticalVelocity;
+            float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
             animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
         }
     }

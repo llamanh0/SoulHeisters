@@ -41,11 +41,9 @@ public class SpellSlotUI : MonoBehaviour
     {
         if (background == null) return;
 
-        Color originalColor = background.color;
-
         background.DOColor(Color.red, 0.1f)
             .OnComplete(() =>
-                background.DOColor(originalColor, 0.2f));
+                background.DOColor(new Color(0.09411766f, 0.09411766f, 0.09411766f), 0.2f));
     }
 
     private void Update()

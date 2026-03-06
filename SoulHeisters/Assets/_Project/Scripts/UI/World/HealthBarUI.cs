@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// - Saglik degisimlerini HealthComponent uzerinden dinler
 /// - Mevcut sagliga gore fillAmount gunceller
 /// - Canvas'i sadece gerekli durumlarda gosterir:
-///   * Kendi owner'imiza aitse gizli
+///   * Eger bu bir Player ise ve local owner'a aitse gizli
 ///   * Saglik tam ya da sifir ise gizli
 /// </summary>
 public class HealthBarUI : MonoBehaviour
@@ -21,10 +21,16 @@ public class HealthBarUI : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float maxHealth = 100f;
 
+    // Bu obje bir Player mi? (PlayerReferences var mi?)
+    private bool _isPlayer;
+
     private void Start()
     {
         if (healthComponent != null)
         {
+            // Bu health, bir Player uzerinde mi calisiyor?
+            _isPlayer = healthComponent.GetComponent<PlayerReferences>() != null;
+
             healthComponent.OnHealthChanged += HandleHealthChanged;
             UpdateHealthBar(healthComponent.CurrentHealth);
         }
@@ -56,24 +62,24 @@ public class HealthBarUI : MonoBehaviour
             healthBarFill.fillAmount = currentHealth / maxHealth;
         }
 
-        if (canvas != null && healthComponent != null)
-        {
-            // Kendi karakterimiz icin dunya uzerindeki health bar'i gizle
-            if (healthComponent.IsOwner)
-            {
-                canvas.enabled = false;
-                return;
-            }
+        if (canvas == null || healthComponent == null)
+            return;
 
-            // Tam can veya sifir can durumunda health bar'i gizle
-            if (currentHealth <= 0 || currentHealth >= maxHealth)
-            {
-                canvas.enabled = false;
-            }
-            else
-            {
-                canvas.enabled = true;
-            }
+        // Eger bu bir PLAYER ve local owner'a aitse, world-space health bar'i gizle
+        if (_isPlayer && healthComponent.IsOwner)
+        {
+            canvas.enabled = false;
+            return;
+        }
+
+        // Tam can veya sifir can durumunda gizle
+        if (currentHealth <= 0 || currentHealth >= maxHealth)
+        {
+            canvas.enabled = false;
+        }
+        else
+        {
+            canvas.enabled = true;
         }
     }
 }

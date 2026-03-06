@@ -22,7 +22,7 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
     [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private float airControlMultiplier = 0.4f;
+    [SerializeField] private float airControlMultiplier = 0.8f;
 
     [Header("Jump & Gravity")]
     [SerializeField] private float jumpHeight = 1.5f;
@@ -177,6 +177,19 @@ public class PlayerLocomotion : NetworkBehaviour
     public void ResetVerticalVelocity()
     {
         _velocity.y = 0f;
+    }
+
+    /// <summary>
+    /// Yatay hareketi aninda durdurmak icin kullanilir.
+    /// Orn: MatchEnded durumunda animasyonu idle'a cekmek.
+    /// </summary>
+    public void ForceStopMovement()
+    {
+        CurrentMoveSpeed = 0f;
+
+        // Karakterin yatay hareketini durdurmak icin 0 vektor ile Move cagirabiliriz
+        // ya da hic move cagirmayiz, onemli olan animator'in Speed parametresinin sifirlanmasi.
+        // Su an sadece Speed'i sifirliyoruz; CharacterController hareketini Update'te zaten durduruyoruz.
     }
 
     // Query fonksiyonlari (state gecisleri icin)
