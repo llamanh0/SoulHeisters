@@ -2,6 +2,18 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 
+/// <summary>
+/// Oyuncunun gorsel tarafini (animator, IK, ragdoll gecisi) yonetir.
+/// 
+/// Sorumluluklar:
+/// - Animator parametrelerini Locomotion ve CharacterController'a gore guncellemek
+/// - Aim rig'ini (el IK, global aim) kontrol etmek
+/// - Olum aninda ragdoll'u devreye sokmak
+/// 
+/// Network Notlari:
+/// - Animasyon parametrelerini guncellemek icin owner olma zorunlulugu yok.
+/// - Fakat aim rig icin input gerektigi icin sadece owner tarafinda rig guncellenir.
+/// </summary>
 public class PlayerVisualController : NetworkBehaviour
 {
     [Header("Animator")]
@@ -23,8 +35,10 @@ public class PlayerVisualController : NetworkBehaviour
 
     private PlayerReferences _refs;
 
+    // Animator parametre ID cache
     private int _speedParamID;
     private int _isGroundedParamID;
+    private int _verticalVelocityParamID;
 
     private void Awake()
     {
@@ -32,28 +46,30 @@ public class PlayerVisualController : NetworkBehaviour
 
         _speedParamID = Animator.StringToHash("Speed");
         _isGroundedParamID = Animator.StringToHash("IsGrounded");
+        _verticalVelocityParamID = Animator.StringToHash("VerticalVelocity");
     }
 
     private void Update()
     {
-        if (!IsOwner) return;
-
         UpdateAnimator();
     }
 
     private void LateUpdate()
     {
+        // Aim rig guncellemesi sadece owner icin yapilir
         if (!IsOwner) return;
 
         bool isAiming = _refs.Input.AimInput || _refs.Input.FireInput;
         UpdateRig(isAiming);
     }
 
-    // =========================
-    // Animator Logic
-    // =========================
+    /// <summary>
+    /// Animator parametrelerini gunceller (speed, grounded, vertical velocity).
+    /// </summary>
     private void UpdateAnimator()
     {
+        if (animator == null) return;
+
         if (_refs.Locomotion != null)
         {
             float speed = _refs.Locomotion.CurrentMoveSpeed;
@@ -62,13 +78,20 @@ public class PlayerVisualController : NetworkBehaviour
 
         if (characterController != null)
         {
-            animator.SetBool(_isGroundedParamID, characterController.isGrounded);
+            bool grounded = characterController.isGrounded;
+            animator.SetBool(_isGroundedParamID, grounded);
+        }
+
+        if (_refs.Locomotion != null)
+        {
+            float verticalVelocity = _refs.Locomotion.VerticalVelocity;
+            animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
         }
     }
 
-    // =========================
-    // Rig Logic
-    // =========================
+    /// <summary>
+    /// Ana aim rig'inin agirligini ve hedef pozisyonlarini gunceller.
+    /// </summary>
     private void UpdateRig(bool isAiming)
     {
         float targetWeight = isAiming ? 1f : 0f;
@@ -82,6 +105,9 @@ public class PlayerVisualController : NetworkBehaviour
             UpdateIdle();
     }
 
+    /// <summary>
+    /// Aim durumunda IK hedefini global aim noktasina dogru hareket ettirir.
+    /// </summary>
     private void UpdateAim()
     {
         Vector3 targetPos = globalAimTarget.position;
@@ -93,14 +119,18 @@ public class PlayerVisualController : NetworkBehaviour
         handIkTarget.rotation = Quaternion.LookRotation(lookDir);
     }
 
+    /// <summary>
+    /// Aim yokken IK hedefinin rotasyonunu karakterle hizalar.
+    /// </summary>
     private void UpdateIdle()
     {
         handIkTarget.rotation = transform.rotation;
     }
 
-    // =========================
-    // Death Visual
-    // =========================
+    /// <summary>
+    /// Olum aninda ragdoll'u devreye sokar ve ana kapsul collider'i kapatir.
+    /// Animator uzerinden "Die" trigger'ini da tetikler.
+    /// </summary>
     public void HandleDeathVisual()
     {
         if (mainCapsuleCollider != null)
@@ -109,6 +139,7 @@ public class PlayerVisualController : NetworkBehaviour
         if (ragdollController != null)
             ragdollController.EnableRagdoll();
 
-        animator.SetTrigger("Die");
+        if (animator != null)
+            animator.SetTrigger("Die");
     }
 }

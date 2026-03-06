@@ -1,6 +1,13 @@
-using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Belirli sure boyunca gelen hasari azaltan defensif spell.
+/// 
+/// Mantik:
+/// - Cooldown ve mana kontrolu
+/// - ServerRpc ile server tarafinda damage reduction uygular
+/// - Tum client'larda belirli sure VFX gosterilir
+/// </summary>
 public class SoulGuardSpell : ISpell
 {
     private PlayerReferences _refs;
@@ -30,8 +37,10 @@ public class SoulGuardSpell : ISpell
         _refs = refs;
         _combat = refs.Combat;
     }
+
     public SpellCastResult TryCast()
     {
+        // Yalnizca owner cast istegi gonderebilir
         if (!_combat.IsOwner)
             return SpellCastResult.OnCooldown;
 
@@ -44,6 +53,7 @@ public class SoulGuardSpell : ISpell
         _nextCastTime = Time.time + _cooldown;
         _lastCastTime = Time.time;
 
+        // Server tarafinda damage reduction uygula
         _combat.CastSoulGuardServerRpc(_duration, _damageReduction, _manaCost);
 
         return SpellCastResult.Success;

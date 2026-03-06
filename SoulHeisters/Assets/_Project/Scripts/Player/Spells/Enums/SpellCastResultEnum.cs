@@ -1,3 +1,6 @@
+/// <summary>
+/// Bir spell cast girisiminin sonucu.
+/// </summary>
 public enum SpellCastResult
 {
     Success,

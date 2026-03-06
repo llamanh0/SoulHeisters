@@ -1,9 +1,19 @@
+/// <summary>
+/// SpellDefinitionSO verisinden uygun ISpell implementasyonunu olusturan
+/// basit factory sinifi.
+/// </summary>
 public static class SpellFactory
 {
+    /// <summary>
+    /// Verilen tanima gore uygun ISpell instance'i olusturur.
+    /// Initialize cagrisini SpellInventory'de yapariz.
+    /// </summary>
     public static ISpell CreateSpell(
         SpellDefinitionSO def,
         PlayerReferences refs)
     {
+        if (def == null) return null;
+
         switch (def.spellType)
         {
             case SpellType.Bolt:

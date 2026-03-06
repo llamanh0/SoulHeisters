@@ -1,5 +1,12 @@
 using UnityEngine;
 
+/// <summary>
+/// Bir spell tipine ait static verileri tutan ScriptableObject.
+/// 
+/// Kullanimi:
+/// - Inspector uzerinden bir SpellDefinition olusturulur.
+/// - SpellFactory bu verilerden uygun ISpell instance'i cikarir.
+/// </summary>
 [CreateAssetMenu(menuName = "Spells/Spell Definition")]
 public class SpellDefinitionSO : ScriptableObject
 {

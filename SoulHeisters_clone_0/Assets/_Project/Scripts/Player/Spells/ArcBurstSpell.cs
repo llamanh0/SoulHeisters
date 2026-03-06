@@ -1,5 +1,13 @@
 using UnityEngine;
 
+/// <summary>
+/// Oyuncunun etrafinda dairesel bir alan hasari veren spell.
+/// 
+/// Mantik:
+/// - Cooldown ve mana kontrolu
+/// - ServerRpc ile server'da Physics.OverlapSphere ile hedefleri bulma
+/// - IDamageable araciligi ile hasar dagitma (server tarafinda)
+/// </summary>
 public class ArcBurstSpell : ISpell
 {
     private PlayerReferences _refs;
@@ -32,18 +40,21 @@ public class ArcBurstSpell : ISpell
 
     public SpellCastResult TryCast()
     {
+        // Yalnizca owner cast istegi gonderebilir
         if (!_combat.IsOwner)
             return SpellCastResult.OnCooldown;
 
         if (Time.time < _nextCastTime)
             return SpellCastResult.OnCooldown;
 
+        // Client tarafli mana kontrolu (dogrulama server'da)
         if (_refs.Mana.CurrentMana.Value < _manaCost)
             return SpellCastResult.NotEnoughMana;
 
         _nextCastTime = Time.time + _cooldown;
         _lastCastTime = Time.time;
 
+        // Gercek hasar islemi server tarafinda yapilir
         _combat.CastArcBurstServerRpc(_radius, _damage, _manaCost);
 
         return SpellCastResult.Success;
