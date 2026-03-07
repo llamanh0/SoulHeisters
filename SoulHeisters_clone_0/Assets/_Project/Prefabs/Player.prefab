@@ -3223,7 +3223,7 @@ MonoBehaviour:
   walkSpeed: 5
   sprintSpeed: 8
   rotationSpeed: 10
-  airControlMultiplier: 0.4
+  airControlMultiplier: 0.8
   jumpHeight: 1.5
   gravity: -9.81
   fallMultiplier: 2.5
