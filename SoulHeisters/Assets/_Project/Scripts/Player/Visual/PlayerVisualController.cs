@@ -49,13 +49,9 @@ public class PlayerVisualController : NetworkBehaviour
         _verticalVelocityParamID = Animator.StringToHash("VerticalVelocity");
     }
 
-    private void Update()
-    {
-        UpdateAnimator();
-    }
-
     private void LateUpdate()
     {
+        UpdateAnimator();
         // Aim rig guncellemesi sadece owner icin yapilir
         if (!IsOwner) return;
 
