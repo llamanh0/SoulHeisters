@@ -21,6 +21,9 @@ public class PlayerReferences : MonoBehaviour
     [field: SerializeField] public ManaComponent Mana { get; private set; }
     [field: SerializeField] public SpellInventory SpellInventory { get; private set; }
 
+    // Yardimcilar
+    public Transform CameraRoot => Locomotion != null ? Locomotion.CameraRoot : transform;
+
     private void Awake()
     {
         InitializeReferences();

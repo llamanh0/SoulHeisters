@@ -36,6 +36,8 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float topClamp = 70f;
     [SerializeField] private float bottomClamp = -40f;
 
+    public Transform CameraRoot => cameraRoot != null ? cameraRoot.transform : transform;
+
     /// <summary> Su anki yuru/sprint hizini animator icin disariya acar. </summary>
     public float CurrentMoveSpeed { get; private set; }
 
