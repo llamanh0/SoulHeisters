@@ -178,7 +178,11 @@ public class MobAIController : NetworkBehaviour
         if (attackHitbox != null)
         {
             attackHitbox.ResetHitFlag();
+
+            // Server'da ac
             attackHitbox.gameObject.SetActive(true);
+            // Tum client'lara da acmalarini soyle
+            SetHitboxActiveClientRpc(true);
         }
 
         float hitboxEndTime = Time.time + hitboxActiveTime;
@@ -190,7 +194,10 @@ public class MobAIController : NetworkBehaviour
 
         if (attackHitbox != null)
         {
+            // Server'da kapat
             attackHitbox.gameObject.SetActive(false);
+            // Tum client'lara da kapatmalarini soyle
+            SetHitboxActiveClientRpc(false);
         }
 
         // 3) RECOVERY / LOCK — vurduktan sonra hareket kilidi
@@ -239,5 +246,23 @@ public class MobAIController : NetworkBehaviour
                 targetRot,
                 Time.deltaTime * 10f);
         }
+    }
+
+    /// <summary>
+    /// Server tarafindan cagrilir, tum client'larda hitbox'i ac/kapa yapar.
+    /// </summary>
+    [ClientRpc]
+    private void SetHitboxActiveClientRpc(bool isActive)
+    {
+        if (attackHitbox != null)
+        {
+            attackHitbox.gameObject.SetActive(isActive);
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(transform.position, attackRange);
     }
 }
