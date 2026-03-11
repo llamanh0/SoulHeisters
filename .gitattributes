@@ -3,3 +3,15 @@
 *.tga filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.pdf filter=lfs diff=lfs merge=lfs -text
+
+# ShaderLab dosyalarını istatistiklerden çıkar
+*.shader linguist-vendored
+*.cginc linguist-vendored
+*.compute linguist-vendored
+
+# Unity'nin otomatik oluşturduğu tüm meta dosyalarını gizle
+*.meta linguist-vendored
+
+# Paketleri ve eklentileri (Plugins) istatistikten düş
+Assets/Plugins/** linguist-vendored
+Packages/** linguist-vendored
