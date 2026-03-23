@@ -89,14 +89,21 @@ public class BlinkSpell : ISpell
     /// </summary>
     private Vector3 GetBlinkPoint()
     {
-        Camera cam = Camera.main;
-        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+        if(Camera.main != null)
+        {
+            Camera cam = Camera.main;
+            Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 
-        Debug.DrawLine(ray.origin, ray.origin + ray.direction * _range, Color.cyan, 0.2f);
+            Debug.DrawLine(ray.origin, ray.origin + ray.direction * _range, Color.cyan, 0.2f);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, _range))
-            return hit.point;
+            if (Physics.Raycast(ray, out RaycastHit hit, _range))
+                return hit.point;
 
-        return ray.GetPoint(_range);
+            return ray.GetPoint(_range);
+        }
+        else
+        {
+            return Vector3.zero;
+        }
     }
 }

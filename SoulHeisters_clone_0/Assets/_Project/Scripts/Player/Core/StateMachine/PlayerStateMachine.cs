@@ -79,20 +79,20 @@ public class PlayerStateMachine : MonoBehaviour
     {
         if (refs == null || refs.Locomotion == null) return;
 
-        // Sadece owner olan client state makinesini isletir
-        if (!refs.Locomotion.IsSpawned || !refs.Locomotion.IsOwner) return;
+        if (!refs.Locomotion.IsSpawned || !refs.Locomotion.IsOwner)
+        {
+            // Debug:
+            // Debug.Log($"[PlayerSM] Skipping update. IsSpawned={refs.Locomotion.IsSpawned}, IsOwner={refs.Locomotion.IsOwner}");
+            return;
+        }
 
-        // Oyun Playing durumunda degilse hareket/state calismasin
         if (GameStateManager.Instance != null &&
             GameStateManager.Instance.CurrentState != GameState.Playing)
         {
             return;
         }
 
-        // Gravity her state'de calisir
         refs.Locomotion.ApplyGravity();
-
-        // Aktif state mantigi
         CurrentState?.Tick();
     }
 

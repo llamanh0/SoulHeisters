@@ -15,12 +15,8 @@ public class MobAttackHitbox : MonoBehaviour
 
     private void Awake()
     {
-        // Bu collider mutlaka trigger olmali
         var col = GetComponent<Collider>();
         col.isTrigger = true;
-
-        // Baslangicta kapali olsun
-        gameObject.SetActive(false);
     }
 
     /// <summary>

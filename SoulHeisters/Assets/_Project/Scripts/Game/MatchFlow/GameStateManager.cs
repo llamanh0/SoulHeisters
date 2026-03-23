@@ -26,6 +26,12 @@ public class GameStateManager : NetworkBehaviour
     private NetworkVariable<GameState> currentState =
         new NetworkVariable<GameState>(GameState.WaitingForPlayers);
 
+    /// <summary>
+    /// Aktif mac baslangici networkte tutulur ki herkes ayni sureyi tanisin.
+    /// </summary>
+    private NetworkVariable<float> _networkMatchStartTime = new(
+    0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     /// <summary> Su anki oyun durumu (sadece okunabilir). </summary>
     public GameState CurrentState => currentState.Value;
 
@@ -45,10 +51,13 @@ public class GameStateManager : NetworkBehaviour
     /// Sadece server doldurur.
     /// </summary>
     private float matchStartTime;
-
-
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
     }
 
@@ -96,13 +105,8 @@ public class GameStateManager : NetworkBehaviour
     {
         currentState.Value = GameState.Starting;
 
-        // Kisa bir bekleme suresi (3 saniye)
         yield return new WaitForSeconds(3f);
 
-        // Mac baslangic zamanini kaydet (sadece server)
-        matchStartTime = Time.time;
-
-        // Dis sistemlere macin basladigini bildir
         OnMatchStarted?.Invoke();
     }
 
@@ -112,6 +116,9 @@ public class GameStateManager : NetworkBehaviour
     /// </summary>
     private IEnumerator PlayingPhase()
     {
+        matchStartTime = Time.time;
+        _networkMatchStartTime.Value = (float)NetworkManager.ServerTime.Time;
+
         currentState.Value = GameState.Playing;
 
         while (!IsMatchFinished())
@@ -158,15 +165,9 @@ public class GameStateManager : NetworkBehaviour
     /// </summary>
     public float GetRemainingTime()
     {
-        // Match baslamamissa tam sureyi don
-        if (CurrentState != GameState.Playing)
-        {
-            return matchDuration;
-        }
+        if (CurrentState != GameState.Playing) return matchDuration;
 
-        float elapsed = Time.time - matchStartTime;
-        float remaining = matchDuration - elapsed;
-
-        return remaining;
+        float elapsed = (float)NetworkManager.ServerTime.Time - _networkMatchStartTime.Value;
+        return Mathf.Max(0f, matchDuration - elapsed);
     }
 }

@@ -14,6 +14,9 @@ public class AppNetManager : MonoBehaviour
 {
     [SerializeField] private GameObject DebugCanvas;
 
+    [Header("Scenes")]
+    [SerializeField] private string gameSceneName = "GameScene";
+
     /// <summary>
     /// Uygulama seviyesinde tekil instance.
     /// </summary>
@@ -21,7 +24,6 @@ public class AppNetManager : MonoBehaviour
 
     private void Awake()
     {
-        // Singleton kurulum: sahnede baska bir instance varsa yok et
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -89,9 +91,22 @@ public class AppNetManager : MonoBehaviour
     public void StartHost()
     {
         Debug.Log("[AppNetManager] Host is being started.");
-        NetworkManager.Singleton.StartHost();
-        if (DebugCanvas != null)
-            DebugCanvas.SetActive(false);
+        if (NetworkManager.Singleton.StartHost())
+        {
+            if (DebugCanvas != null)
+                DebugCanvas.SetActive(false);
+
+            // Host basarili basladiysa oyun sahnesini network uzerinden yukle
+            if (!string.IsNullOrEmpty(gameSceneName))
+            {
+                NetworkManager.Singleton.SceneManager.LoadScene(
+                    gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+            }
+        }
+        else
+        {
+            Debug.LogError("[AppNetManager] Failed to start Host.");
+        }
     }
 
     /// <summary>
@@ -100,9 +115,16 @@ public class AppNetManager : MonoBehaviour
     public void StartClient()
     {
         Debug.Log("[AppNetManager] Client is being started.");
-        NetworkManager.Singleton.StartClient();
-        if (DebugCanvas != null)
-            DebugCanvas.SetActive(false);
+        if (NetworkManager.Singleton.StartClient())
+        {
+            if (DebugCanvas != null)
+                DebugCanvas.SetActive(false);
+            // Client icin sahne gecisini server tarafindaki SceneManager yonetecek
+        }
+        else
+        {
+            Debug.LogError("[AppNetManager] Failed to start Client.");
+        }
     }
 
     /// <summary>

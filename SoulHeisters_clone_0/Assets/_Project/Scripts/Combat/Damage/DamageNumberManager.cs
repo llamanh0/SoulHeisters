@@ -14,7 +14,11 @@ public class DamageNumberManager : MonoBehaviour
 
     private void Awake()
     {
-        // Basit singleton atamasi, sahnede tek oldugu varsayiliyor
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
     }
 

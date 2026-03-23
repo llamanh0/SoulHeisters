@@ -66,8 +66,11 @@ public class PlayerLocomotion : NetworkBehaviour
     {
         if (IsOwner)
         {
-            // Sadece local owner icin kamera referansi al
-            _cameraTransform = Camera.main.transform;
+            _cameraTransform = Camera.main != null ? Camera.main.transform : null;
+
+            if (_cameraTransform == null)
+                Debug.LogWarning("[Locomotion] Camera.main is NULL at spawn time! Will retry in Move().");
+
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
@@ -79,7 +82,6 @@ public class PlayerLocomotion : NetworkBehaviour
         }
         else
         {
-            // Diger client'lar icin bu oyuncunun TPS kamerasini kapat
             if (tpsCamera) tpsCamera.gameObject.SetActive(false);
         }
     }
@@ -128,13 +130,21 @@ public class PlayerLocomotion : NetworkBehaviour
     /// </summary>
     public void Move(Vector2 input, bool sprint, bool isAirborne = false)
     {
-        if (_cameraTransform == null || input == Vector2.zero)
+        // ─── Kamera referansı yoksa her çağrıda tekrar bulmayı dene ───
+        if (_cameraTransform == null)
+        {
+            if (Camera.main != null)
+                _cameraTransform = Camera.main.transform;
+            else
+                return; // Kamera gerçekten yoksa yapacak bir şey yok
+        }
+
+        if (input == Vector2.zero)
         {
             CurrentMoveSpeed = 0f;
             return;
         }
 
-        // Kamera eksenine gore yon vektoru hesapla
         Vector3 camForward = _cameraTransform.forward;
         Vector3 camRight = _cameraTransform.right;
         camForward.y = 0f;
@@ -144,7 +154,6 @@ public class PlayerLocomotion : NetworkBehaviour
 
         Vector3 direction = (camForward * input.y + camRight * input.x).normalized;
 
-        // Karakter modelini hareket yonune dondur
         if (direction != Vector3.zero)
         {
             Quaternion targetRot = Quaternion.LookRotation(direction);
@@ -154,7 +163,6 @@ public class PlayerLocomotion : NetworkBehaviour
                 rotationSpeed * Time.deltaTime
             );
 
-            // Bu rotasyon degerini network'e yaz (owner)
             _netVisualRotationY.Value = transform.eulerAngles.y;
         }
 

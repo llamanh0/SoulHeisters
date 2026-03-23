@@ -40,6 +40,7 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     public event Action OnDeath;
 
     private float _damageReductionPercent = 0;
+    private bool _deathTriggered = false;
 
     public override void OnNetworkSpawn()
     {
@@ -67,7 +68,7 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         if (!IsServer || IsDead) return;
 
         float finalDamage = amount * (1f - _damageReductionPercent);
-        currentHealth.Value -= finalDamage;
+        currentHealth.Value = Mathf.Max(0f, currentHealth.Value - finalDamage);
     }
 
     /// <summary>
@@ -78,11 +79,10 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     {
         OnHealthChanged?.Invoke(previousValue, newValue);
 
-        // Olum kontrolu
-        if (IsDead)
+        if (newValue <= 0f && !_deathTriggered)
         {
+            _deathTriggered = true;
             OnDeath?.Invoke();
-            currentHealth.Value = 0;
         }
     }
 

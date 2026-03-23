@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -16,17 +16,12 @@ public class WorldMobManager : NetworkBehaviour
     private List<MobSpawnPoint> spawnPoints = new();
     private List<NetworkObject> activeMobs = new();
 
-    private void Awake()
-    {
-        // Sahnedeki tum MobSpawnPoint component'lerini topla
-        spawnPoints.AddRange(FindObjectsOfType<MobSpawnPoint>());
-    }
-
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
 
-        // Mac baslangici ve bitisi event'lerine abone ol
+        spawnPoints.AddRange(FindObjectsOfType<MobSpawnPoint>());
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.OnMatchStarted += SpawnAllMobs;
@@ -34,7 +29,7 @@ public class WorldMobManager : NetworkBehaviour
         }
     }
 
-    private void OnDestroy()
+    public override void OnNetworkDespawn()
     {
         if (!IsServer) return;
 

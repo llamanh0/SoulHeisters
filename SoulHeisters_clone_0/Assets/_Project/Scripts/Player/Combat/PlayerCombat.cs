@@ -288,11 +288,15 @@ public class PlayerCombat : NetworkBehaviour
     private Vector3 GetCrosshairHitPoint()
     {
         Camera cam = Camera.main;
-        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+        if (cam == null)
+        {
+            Debug.LogWarning("[PlayerCombat] Camera.main is null!");
+            return transform.position + transform.forward * 100f;
+        }
 
+        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
             return hit.point;
-
         return ray.GetPoint(100f);
     }
 
