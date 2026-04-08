@@ -259,10 +259,4 @@ public class MobAIController : NetworkBehaviour
             attackHitbox.gameObject.SetActive(isActive);
         }
     }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(transform.position, attackRange);
-    }
 }

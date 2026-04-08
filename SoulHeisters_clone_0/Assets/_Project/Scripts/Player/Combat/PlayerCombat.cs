@@ -290,7 +290,6 @@ public class PlayerCombat : NetworkBehaviour
         Camera cam = Camera.main;
         if (cam == null)
         {
-            Debug.LogWarning("[PlayerCombat] Camera.main is null!");
             return transform.position + transform.forward * 100f;
         }
 

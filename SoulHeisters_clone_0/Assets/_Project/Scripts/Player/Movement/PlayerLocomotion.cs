@@ -68,9 +68,6 @@ public class PlayerLocomotion : NetworkBehaviour
         {
             _cameraTransform = Camera.main != null ? Camera.main.transform : null;
 
-            if (_cameraTransform == null)
-                Debug.LogWarning("[Locomotion] Camera.main is NULL at spawn time! Will retry in Move().");
-
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
