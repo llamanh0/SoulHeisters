@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -42,7 +42,7 @@ public class SpellInventory : NetworkBehaviour
     {
         if (def == null || _refs == null) return;
 
-        // Ayn? spell'i iki kez ekleme
+        // Aynı spell'i iki kez ekleme
         if (_runtimeSpellDefinitions.Exists(x => x != null && x.spellType == def.spellType))
             return;
 
@@ -111,6 +111,7 @@ public class SpellInventory : NetworkBehaviour
             {
                 spellSlots[i].gameObject.SetActive(true);
                 spellSlots[i].Setup(_runtimeSpells[i], _runtimeSpellDefinitions[i]);
+                spellSlots[i].SetSelected(i == _currentIndex);
             }
             else
             {
