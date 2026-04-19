@@ -12,6 +12,8 @@ public class SpellDefinitionSO : ScriptableObject
 {
     public SpellType spellType;
 
+    public Sprite icon;
+
     [Header("Common")]
     public float manaCost;
     public float cooldown;

@@ -4,13 +4,6 @@ using UnityEngine;
 
 /// <summary>
 /// Oyuncunun sahip oldugu spell'leri ve aktif spell secimini yonetir.
-/// 
-/// Sorumluluklar:
-/// - Baslangic spell'lerini (startingSpells) olusturmak
-/// - SpellDefinitionSO'dan runtime ISpell objeleri olusturmak
-/// - Klavye (1-4) ile spell slot degistirmek
-/// - Spell cast sonuclarini UI'ya iletmek
-/// - Pickup vb. ile yeni spell acilimini ClientRpc ile almak
 /// </summary>
 public class SpellInventory : NetworkBehaviour
 {
@@ -19,6 +12,8 @@ public class SpellInventory : NetworkBehaviour
     [SerializeField] private SpellSlotUI[] spellSlots;
 
     private List<ISpell> _runtimeSpells = new();
+    private List<SpellDefinitionSO> _runtimeSpellDefinitions = new();
+
     private int _currentIndex;
 
     private PlayerReferences _refs;
@@ -30,10 +25,8 @@ public class SpellInventory : NetworkBehaviour
     {
         _refs = GetComponent<PlayerReferences>();
 
-        // Yalnizca owner kendi spell envanterini yonetir ve UI gunceller
         if (!IsOwner) return;
 
-        // Baslangic spell'lerini ekle
         foreach (var def in startingSpells)
         {
             AddSpell(def);
@@ -49,22 +42,24 @@ public class SpellInventory : NetworkBehaviour
     {
         if (def == null || _refs == null) return;
 
+        // Ayn? spell'i iki kez ekleme
+        if (_runtimeSpellDefinitions.Exists(x => x != null && x.spellType == def.spellType))
+            return;
+
         ISpell spell = SpellFactory.CreateSpell(def, _refs);
         if (spell == null) return;
 
         spell.Initialize(_refs);
+
         _runtimeSpells.Add(spell);
+        _runtimeSpellDefinitions.Add(def);
 
         RefreshUI();
     }
 
-    /// <summary>
-    /// Server tarafindan cagirilip, ilgili client'a yeni bir spell acmasini soyleyen RPC.
-    /// </summary>
     [ClientRpc]
     public void UnlockSpellClientRpc(SpellType type, ulong targetClientId)
     {
-        // Sadece hedef client bu RPC'ye cevap verecek
         if (NetworkManager.Singleton.LocalClientId != targetClientId)
             return;
 
@@ -76,7 +71,6 @@ public class SpellInventory : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // Klavye ile spell slot degistirme
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchSpell(0);
         if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchSpell(1);
         if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchSpell(2);
@@ -91,11 +85,12 @@ public class SpellInventory : NetworkBehaviour
         if (index >= _runtimeSpells.Count) return;
 
         _currentIndex = index;
+
+        RefreshUI();
     }
 
     /// <summary>
     /// Tanimli tum spell definition listesi icinden ilgili spell tipini bulur.
-    /// Genellikle pickup veya client unlock icin kullanilir.
     /// </summary>
     public SpellDefinitionSO FindSpellDefinition(SpellType type)
     {
@@ -115,10 +110,11 @@ public class SpellInventory : NetworkBehaviour
             if (i < _runtimeSpells.Count)
             {
                 spellSlots[i].gameObject.SetActive(true);
-                spellSlots[i].Setup(_runtimeSpells[i]);
+                spellSlots[i].Setup(_runtimeSpells[i], _runtimeSpellDefinitions[i]);
             }
             else
             {
+                spellSlots[i].Clear();
                 spellSlots[i].gameObject.SetActive(false);
             }
         }
@@ -126,7 +122,6 @@ public class SpellInventory : NetworkBehaviour
 
     /// <summary>
     /// Spell cast girisiminin sonuclarina gore UI feedback verir.
-    /// Ornek: yetersiz mana ise slot kirmizi flash yapar.
     /// </summary>
     public void HandleCastResult(SpellCastResult result)
     {

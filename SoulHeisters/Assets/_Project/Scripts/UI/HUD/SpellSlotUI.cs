@@ -8,20 +8,34 @@ using UnityEngine.UI;
 /// Sorumluluklar:
 /// - Bagli oldugu ISpell'in cooldown durumuna gore overlay fillAmount guncellemek
 /// - Yetersiz mana durumunda kisa bir renk degisim feedback'i vermek
+/// - Spell icon'unu gostermek
 /// </summary>
 public class SpellSlotUI : MonoBehaviour
 {
+    [SerializeField] private Image spellIcon;
     [SerializeField] private Image cooldownOverlay;
     [SerializeField] private Image background;
 
     private ISpell _spell;
 
     /// <summary>
-    /// Bu slotta gosterilecek spell'i baglar.
+    /// Bu slotta gosterilecek spell'i ve icon'unu baglar.
     /// </summary>
-    public void Setup(ISpell spell)
+    public void Setup(ISpell spell, SpellDefinitionSO definition)
     {
         _spell = spell;
+
+        if (spellIcon != null)
+        {
+            spellIcon.sprite = definition != null ? definition.icon : null;
+            spellIcon.enabled = spellIcon.sprite != null;
+            spellIcon.preserveAspect = true;
+        }
+
+        if (cooldownOverlay != null)
+        {
+            cooldownOverlay.fillAmount = 0f;
+        }
     }
 
     /// <summary>
@@ -30,6 +44,13 @@ public class SpellSlotUI : MonoBehaviour
     public void Clear()
     {
         _spell = null;
+
+        if (spellIcon != null)
+        {
+            spellIcon.sprite = null;
+            spellIcon.enabled = false;
+        }
+
         if (cooldownOverlay != null)
             cooldownOverlay.fillAmount = 0f;
     }
