@@ -46,8 +46,7 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
         
-        // SCENE EVENT'LERINI DINLE - COK ONEMLI!
-        NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
+        //NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
     }
 
     private void CleanupNetworkCallbacks()
@@ -55,7 +54,7 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnected;
-        NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
+        //NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
     }
 
     #region Scene Event Handling
