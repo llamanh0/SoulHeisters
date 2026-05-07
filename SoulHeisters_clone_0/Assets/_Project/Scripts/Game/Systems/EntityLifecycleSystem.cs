@@ -1,15 +1,9 @@
 using Unity.Netcode;
+using UnityEngine;
 
 /// <summary>
-/// Ortak entity omur yonetimi icin kullanilan basit sistem.
-/// 
-/// Sorumluluklar:
-/// - NetworkObject'e ait HealthComponent'in OnDeath event'ine abone olmak
-/// - Entity oldugunde ortak davranislari uygulamak (su an sadece despawn)
-/// 
-/// Not:
-/// - Sadece server tarafinda aktif olmalidir.
-/// - Ilerde loot spawn, XP ver, threat sistemi bildir gibi genisletilebilir.
+/// Entity yasam dongusu yoneticisi
+/// Olum durumlarini izler ve temizlik yapar
 /// </summary>
 public class EntityLifecycleSystem : NetworkBehaviour
 {
@@ -25,36 +19,43 @@ public class EntityLifecycleSystem : NetworkBehaviour
         Instance = this;
     }
 
-    /// <summary>
-    /// Verilen NetworkObject uzerindeki HealthComponent'i bulur ve
-    /// olum event'ine abone olur.
-    /// </summary>
     public void RegisterEntity(NetworkObject netObj)
     {
-        var health = netObj.GetComponent<HealthComponent>();
-        if (health == null) return;
+        if (netObj == null)
+        {
+            Debug.LogWarning("[EntityLifecycleSystem] Tried to register null NetworkObject");
+            return;
+        }
 
-        // Entity oldugunde HandleDeath cagirilacak
+        var health = netObj.GetComponent<HealthComponent>();
+        if (health == null)
+        {
+            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject has no HealthComponent");
+            return;
+        }
+
+        // Despawn et
         health.OnDeath += () => HandleDeath(netObj);
     }
 
-    /// <summary>
-    /// Entity oldugunde cagrilan ortak handler.
-    /// Burada loot, XP, threat sistemi gibi isler yapilabilir.
-    /// Simdilik sadece despawn eder.
-    /// </summary>
     private void HandleDeath(NetworkObject netObj)
     {
         if (!IsServer) return;
 
-        // TODO:
-        // SpawnLoot(netObj);
-        // NotifyThreatSystem(netObj);
-        // AwardXP(netObj);
-
-        if (netObj != null && netObj.IsSpawned)
+        // NULL CHECK - COK ONEMLI!
+        if (netObj == null || netObj.gameObject == null)
         {
-            netObj.Despawn();
+            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject already destroyed");
+            return;
         }
+
+        if (!netObj.IsSpawned)
+        {
+            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject is not spawned");
+            return;
+        }
+
+        Debug.Log($"[EntityLifecycleSystem] Despawning entity: {netObj.gameObject.name}");
+        netObj.Despawn(true);
     }
 }

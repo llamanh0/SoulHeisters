@@ -32,6 +32,11 @@ public class PlayerVisualController : NetworkBehaviour
 
     [Header("Settings")]
     [SerializeField] private float aimSpeed = 15f;
+    
+    [Header("Network Settings")]
+    [SerializeField] private float animatorUpdateRate = 0.1f; // Saniyede 10 kez
+    
+    private float _lastAnimatorUpdate;
 
     private PlayerReferences _refs;
 
@@ -49,14 +54,25 @@ public class PlayerVisualController : NetworkBehaviour
         _verticalVelocityParamID = Animator.StringToHash("VerticalVelocity");
     }
 
-    private void LateUpdate()
+     private void LateUpdate()
     {
-        UpdateAnimator();
-        // Aim rig guncellemesi sadece owner icin yapilir
-        if (!IsOwner) return;
-
-        bool isAiming = _refs.Input.AimInput || _refs.Input.FireInput;
-        UpdateRig(isAiming);
+        // Owner her frame guncellesin
+        if (IsOwner)
+        {
+            UpdateAnimator();
+            UpdateRig(_refs.Input.AimInput || _refs.Input.FireInput);
+        }
+        else
+        {
+            // Diger oyuncular icin rate-limited update
+            if (Time.time - _lastAnimatorUpdate >= animatorUpdateRate)
+            {
+                _lastAnimatorUpdate = Time.time;
+                UpdateAnimator();
+            }
+            
+            UpdateRig(mainRig.weight > 0.5f); // Mevcut rig durumuna gore
+        }
     }
 
     /// <summary>
@@ -73,12 +89,16 @@ public class PlayerVisualController : NetworkBehaviour
         if (_refs.Locomotion != null)
         {
             float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
-            animator.SetFloat(_speedParamID, speed, 0.1f, Time.deltaTime);
+            
+            // SMOOTH DAMPING - animede ani degisiklikleri onler
+            float currentSpeed = animator.GetFloat(_speedParamID);
+            float smoothSpeed = Mathf.Lerp(currentSpeed, speed, Time.deltaTime * 5f);
+            
+            animator.SetFloat(_speedParamID, smoothSpeed);
         }
 
         if (characterController != null)
         {
-            // Match bitmis olsa bile grounded bilgisini guncellemek sorun degil
             bool grounded = characterController.isGrounded;
             animator.SetBool(_isGroundedParamID, grounded);
         }
@@ -86,7 +106,12 @@ public class PlayerVisualController : NetworkBehaviour
         if (_refs.Locomotion != null)
         {
             float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
-            animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
+            
+            // SMOOTH DAMPING
+            float currentVel = animator.GetFloat(_verticalVelocityParamID);
+            float smoothVel = Mathf.Lerp(currentVel, verticalVelocity, Time.deltaTime * 5f);
+            
+            animator.SetFloat(_verticalVelocityParamID, smoothVel);
         }
     }
 

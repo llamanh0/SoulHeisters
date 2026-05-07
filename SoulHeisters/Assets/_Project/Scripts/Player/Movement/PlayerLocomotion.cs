@@ -35,6 +35,13 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 0.03f;
     [SerializeField] private float topClamp = 70f;
     [SerializeField] private float bottomClamp = -40f;
+    
+    [Header("Network Smoothing")]
+    [SerializeField] private float positionLerpSpeed = 15f;
+    [SerializeField] private float rotationLerpSpeed = 10f;
+
+    private Vector3 _networkPosition;
+    private Quaternion _networkRotation;
 
     public Transform CameraRoot => cameraRoot != null ? cameraRoot.transform : transform;
 
@@ -66,8 +73,8 @@ public class PlayerLocomotion : NetworkBehaviour
     {
         if (IsOwner)
         {
+            // Owner setup
             _cameraTransform = Camera.main != null ? Camera.main.transform : null;
-
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
@@ -76,20 +83,61 @@ public class PlayerLocomotion : NetworkBehaviour
                 tpsCamera.Follow = cameraRoot.transform;
                 tpsCamera.LookAt = cameraRoot.transform;
             }
+
+            // CharacterController aktif
+            if (_controller != null)
+                _controller.enabled = true;
         }
         else
         {
+            // Diger oyuncular
             if (tpsCamera) tpsCamera.gameObject.SetActive(false);
+
+            // CharacterController KAPALI - NetworkTransform kontrol ediyor
+            if (_controller != null)
+                _controller.enabled = false;
+
+            // Rigidbody varsa kinematic yap
+            var rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
         }
     }
 
     private void Update()
     {
-        // Owner olmayan client'lar icin sadece goruntu rotasyonunu yavasca yaklastir
         if (!IsOwner)
         {
-            SyncVisualRotation();
+            // Diger oyunculari smooth interpolate et
+            SmoothNetworkTransform();
+            return;
         }
+
+        // Owner icin mevcut kodlar...
+        SyncVisualRotation();
+    }
+
+    private void SmoothNetworkTransform()
+    {
+        // NetworkTransform'dan gelen pozisyonu smooth lerp
+        _networkPosition = transform.position;
+        _networkRotation = transform.rotation;
+
+        // Smooth hareket (jitter'i onler)
+        transform.position = Vector3.Lerp(
+            transform.position,
+            _networkPosition,
+            Time.deltaTime * positionLerpSpeed
+        );
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            _networkRotation,
+            Time.deltaTime * rotationLerpSpeed
+        );
     }
 
     private void LateUpdate()

@@ -25,14 +25,33 @@ public class SpellSlotUI : MonoBehaviour
     [Header("Glow Settings")]
     [SerializeField] private float rotateSpeed = 90f;
     [SerializeField] private float pulseMinAlpha = 0.4f;
-    [SerializeField] private float pulseMaxAlpha = 1f;
+    // [SerializeField] private float pulseMaxAlpha = 1f;
     [SerializeField] private float pulseDuration = 0.8f;
     [SerializeField] private Color glowColor = new Color(0f, 0.8f, 1f, 1f);
 
     private ISpell _spell;
     private bool _isSelected;
     private Tweener _pulseTween;
+    
+    private void OnDestroy()
+    {
+        // DOTween animasyonlarini durdur ve temizle
+        if (_pulseTween != null)
+        {
+            _pulseTween.Kill();
+            _pulseTween = null;
+        }
 
+        // Bu GameObject'e bagli tum tween'leri durdur
+        transform.DOKill();
+        
+        if (glowImage != null)
+            glowImage.transform.DOKill();
+        
+        if (background != null)
+            background.transform.DOKill();
+    }
+    
     /// <summary>
     /// Bu slotta gosterilecek spell'i ve icon'unu baglar.
     /// </summary>

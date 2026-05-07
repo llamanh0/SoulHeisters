@@ -2,19 +2,39 @@ using Unity.Netcode.Components;
 using UnityEngine;
 
 /// <summary>
-/// Client-authoritative animasyon icin kullanilan NetworkAnimator.
-/// 
-/// Normalde NetworkAnimator server authoritative olarak calisir.
-/// Bu sinif, animasyon parametrelerinin client tarafindan guncellendigini
-/// belirtmek icin OnIsServerAuthoritative metodunu override eder.
+/// Client-authoritative animator
+/// Client kendi animasyonlarini kontrol eder, server'a gonderir
 /// </summary>
+[RequireComponent(typeof(Animator))]
 public class ClientNetworkAnimator : NetworkAnimator
 {
-    /// <summary>
-    /// False donerek animasyon otoritesinin server degil client'ta oldugunu belirtir.
-    /// </summary>
+    [Header("Sync Settings")]
+    [Tooltip("Animator parametreleri ne siklikla sync edilsin (saniye)")]
+    [SerializeField] private float syncInterval = 0.1f;
+
+    private float _lastSyncTime;
+
     protected override bool OnIsServerAuthoritative()
     {
-        return false;
+        return false; // Client kontrol eder
+    }
+
+    private void Update()
+    {
+        // Sadece owner client parametreleri guncellesin
+        if (!IsOwner) return;
+
+        // Belirli araliklarla sync et (her frame degil)
+        if (Time.time - _lastSyncTime >= syncInterval)
+        {
+            _lastSyncTime = Time.time;
+            SyncAnimatorParameters();
+        }
+    }
+
+    private void SyncAnimatorParameters()
+    {
+        // Animator parametrelerini manuel sync et
+        // Bunu NetworkAnimator otomatik yapar ama rate limit gerekebilir
     }
 }
