@@ -46,6 +46,7 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
         
+        // HATA CIKARSA BURAYA GERI DON!
         //NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
     }
 

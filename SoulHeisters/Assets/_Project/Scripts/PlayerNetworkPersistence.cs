@@ -50,7 +50,7 @@ public class PlayerNetworkPersistence : NetworkBehaviour
         _isApplicationQuitting = true;
     }
 
-    private void OnDestroy()
+    public override void OnDestroy()
     {
         // Uygulama kapaniyorsa normal
         if (_isApplicationQuitting)

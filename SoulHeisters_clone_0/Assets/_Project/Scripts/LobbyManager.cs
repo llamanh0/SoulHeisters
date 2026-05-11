@@ -35,8 +35,8 @@ public class LobbyManager : NetworkBehaviour
 
         _playersInLobby = new NetworkList<PlayerLobbyData>();
     }
-    
-    private void OnDestroy()
+
+    public override void OnDestroy()
     {
         Debug.Log("[LobbyManager] OnDestroy - Cleaning up");
         

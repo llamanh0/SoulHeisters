@@ -5907,7 +5907,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -6066,7 +6066,11 @@ MonoBehaviour:
   fadeCanvasGroup: {fileID: 544316495}
   fadeImage: {fileID: 1620418221}
   fadeDuration: 0.8
-  fadeColor: {r: 0, g: 0, b: 0, a: 1}
+  fadeColor:
+    r: 0
+    g: 0
+    b: 0
+    a: 1
 --- !u!1 &682811727
 GameObject:
   m_ObjectHideFlags: 0

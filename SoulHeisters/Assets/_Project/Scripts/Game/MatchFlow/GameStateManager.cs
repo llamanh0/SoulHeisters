@@ -101,7 +101,7 @@ public class GameStateManager : NetworkBehaviour
         Debug.Log("[GameStateManager] Match finished!");
     }
 
-    private void OnDestroy()
+    public override void OnDestroy()
     {
         Debug.Log("[GameStateManager] OnDestroy");
     
