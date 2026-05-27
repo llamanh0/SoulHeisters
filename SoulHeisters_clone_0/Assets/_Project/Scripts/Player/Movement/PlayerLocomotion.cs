@@ -1,4 +1,5 @@
 ﻿using Cinemachine;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -73,7 +74,6 @@ public class PlayerLocomotion : NetworkBehaviour
     {
         if (IsOwner)
         {
-            // Owner setup
             _cameraTransform = Camera.main != null ? Camera.main.transform : null;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -84,27 +84,90 @@ public class PlayerLocomotion : NetworkBehaviour
                 tpsCamera.LookAt = cameraRoot.transform;
             }
 
-            // CharacterController aktif
             if (_controller != null)
-                _controller.enabled = true;
+            {
+                _controller.enabled = false;
+                StartCoroutine(EnableControllerDelayed());
+            }
         }
         else
         {
-            // Diger oyuncular
             if (tpsCamera) tpsCamera.gameObject.SetActive(false);
-
-            // CharacterController KAPALI - NetworkTransform kontrol ediyor
             if (_controller != null)
                 _controller.enabled = false;
-
-            // Rigidbody varsa kinematic yap
-            var rb = GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.isKinematic = true;
-                rb.interpolation = RigidbodyInterpolation.Interpolate;
-            }
         }
+    }
+
+    private IEnumerator EnableControllerDelayed()
+    {
+        yield return new WaitForSeconds(0.3f);
+
+        if (_controller != null)
+        {
+            _controller.enabled = true;
+            Debug.Log($"[PlayerLocomotion] Controller enabled at: {transform.position}");
+        }
+    }
+
+    public void ApplyGravity()
+    {
+        if (_controller == null || !_controller.enabled) return;
+
+        if (_controller.isGrounded && _velocity.y < 0f)
+        {
+            _velocity.y = -2f;
+        }
+        else
+        {
+            float multiplier = _velocity.y < 0f ? fallMultiplier : 1f;
+            _velocity.y += gravity * multiplier * Time.deltaTime;
+        }
+        _controller.Move(new Vector3(0f, _velocity.y, 0f) * Time.deltaTime);
+    }
+
+    public void Move(Vector2 input, bool sprint, bool isAirborne = false)
+    {
+        if (_controller == null || !_controller.enabled) return;
+
+        if (_cameraTransform == null)
+        {
+            if (Camera.main != null)
+                _cameraTransform = Camera.main.transform;
+            else
+                return;
+        }
+
+        if (input == Vector2.zero)
+        {
+            CurrentMoveSpeed = 0f;
+            return;
+        }
+
+        Vector3 camForward = _cameraTransform.forward;
+        Vector3 camRight = _cameraTransform.right;
+        camForward.y = 0f;
+        camRight.y = 0f;
+        camForward.Normalize();
+        camRight.Normalize();
+
+        Vector3 direction = (camForward * input.y + camRight * input.x).normalized;
+
+        if (direction != Vector3.zero)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                rotationSpeed * Time.deltaTime
+            );
+            _netVisualRotationY.Value = transform.eulerAngles.y;
+        }
+
+        float speed = sprint ? sprintSpeed : walkSpeed;
+        if (isAirborne) speed *= airControlMultiplier;
+
+        _controller.Move(direction * speed * Time.deltaTime);
+        CurrentMoveSpeed = input.magnitude * speed;
     }
 
     private void Update()
@@ -145,77 +208,6 @@ public class PlayerLocomotion : NetworkBehaviour
         if (!IsOwner) return;
 
         UpdateCameraRotation();
-    }
-
-    // ═════════════════════ Public API (State'ler kullanacak) ═════════════════════
-
-    /// <summary>
-    /// Her frame cagrilmasi gereken gravity hesabi.
-    /// State makinesi tarafindan Update'te cagrilir.
-    /// </summary>
-    public void ApplyGravity()
-    {
-        if (_controller.isGrounded && _velocity.y < 0f)
-        {
-            // Yere basarken hafif negatif deger, CharacterController icin standart
-            _velocity.y = -2f;
-        }
-        else
-        {
-            float multiplier = _velocity.y < 0f ? fallMultiplier : 1f;
-            _velocity.y += gravity * multiplier * Time.deltaTime;
-        }
-
-        _controller.Move(new Vector3(0f, _velocity.y, 0f) * Time.deltaTime);
-    }
-
-    /// <summary>
-    /// Yatay hareket (yurume/sprint). Kamera yonune gore hesaplanir.
-    /// isAirborne true ise, hava kontrolu azalarak daha yavas hareket edilir.
-    /// </summary>
-    public void Move(Vector2 input, bool sprint, bool isAirborne = false)
-    {
-        // ─── Kamera referansı yoksa her çağrıda tekrar bulmayı dene ───
-        if (_cameraTransform == null)
-        {
-            if (Camera.main != null)
-                _cameraTransform = Camera.main.transform;
-            else
-                return; // Kamera gerçekten yoksa yapacak bir şey yok
-        }
-
-        if (input == Vector2.zero)
-        {
-            CurrentMoveSpeed = 0f;
-            return;
-        }
-
-        Vector3 camForward = _cameraTransform.forward;
-        Vector3 camRight = _cameraTransform.right;
-        camForward.y = 0f;
-        camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
-
-        Vector3 direction = (camForward * input.y + camRight * input.x).normalized;
-
-        if (direction != Vector3.zero)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRot,
-                rotationSpeed * Time.deltaTime
-            );
-
-            _netVisualRotationY.Value = transform.eulerAngles.y;
-        }
-
-        float speed = sprint ? sprintSpeed : walkSpeed;
-        if (isAirborne) speed *= airControlMultiplier;
-
-        _controller.Move(direction * speed * Time.deltaTime);
-        CurrentMoveSpeed = input.magnitude * speed;
     }
 
     /// <summary>

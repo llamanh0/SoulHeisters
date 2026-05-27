@@ -1,12 +1,9 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Oyuncu spawn sistemini yonetir
-/// SADECE GameScene'de calisir
-/// </summary>
 public class PlayerSpawnManager : NetworkBehaviour
 {
     [Header("References")]
@@ -16,24 +13,24 @@ public class PlayerSpawnManager : NetworkBehaviour
     [Header("Scene Settings")]
     [SerializeField] private string gameSceneName = "GameScene";
 
+    private HashSet<ulong> _spawnedPlayers = new HashSet<ulong>();
     private bool _hasInitialized = false;
 
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
 
-        // Sahne kontrolu
         string currentScene = SceneManager.GetActiveScene().name;
         Debug.Log($"[PlayerSpawnManager] OnNetworkSpawn in scene: {currentScene}");
 
-        if (currentScene != gameSceneName)
-        {
-            Debug.Log("[PlayerSpawnManager] Not in GameScene, waiting for scene load");
-            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
-            return;
-        }
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
+        NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
 
-        InitializeSpawning();
+        if (currentScene == gameSceneName)
+        {
+            Debug.Log("[PlayerSpawnManager] Already in GameScene, initializing immediately");
+            InitializeSpawning();
+        }
     }
 
     public override void OnNetworkDespawn()
@@ -43,19 +40,34 @@ public class PlayerSpawnManager : NetworkBehaviour
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
-            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadCompleted;
+
+            if (NetworkManager.Singleton.SceneManager != null)
+                NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadCompleted;
         }
     }
 
-    private void OnSceneLoadCompleted(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode, 
-        System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
+    private void OnSceneLoadCompleted(
+        string sceneName,
+        LoadSceneMode loadSceneMode,
+        List<ulong> clientsCompleted,
+        List<ulong> clientsTimedOut)
     {
         Debug.Log($"[PlayerSpawnManager] Scene load completed: {sceneName}");
+        Debug.Log($"[PlayerSpawnManager] Clients completed: {clientsCompleted.Count}");
+        Debug.Log($"[PlayerSpawnManager] Clients timed out: {clientsTimedOut.Count}");
 
         if (sceneName == gameSceneName && !_hasInitialized)
         {
-            InitializeSpawning();
+            StartCoroutine(WaitAndInitialize());
         }
+    }
+
+    private IEnumerator WaitAndInitialize()
+    {
+        yield return new WaitForSeconds(0.2f);
+
+        Debug.Log("[PlayerSpawnManager] Initializing after scene load");
+        InitializeSpawning();
     }
 
     private void InitializeSpawning()
@@ -69,18 +81,19 @@ public class PlayerSpawnManager : NetworkBehaviour
         _hasInitialized = true;
         Debug.Log("[PlayerSpawnManager] Initializing spawning in GameScene");
 
-        // Client connected event'i dinle
-        NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
-
-        // Mevcut tum client'lar icin spawn et
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
             Debug.Log($"[PlayerSpawnManager] Checking client {client.ClientId}");
 
-            // Zaten player object varsa atla
             if (client.PlayerObject != null)
             {
                 Debug.Log($"[PlayerSpawnManager] Client {client.ClientId} already has PlayerObject");
+                continue;
+            }
+
+            if (_spawnedPlayers.Contains(client.ClientId))
+            {
+                Debug.Log($"[PlayerSpawnManager] Client {client.ClientId} already spawned");
                 continue;
             }
 
@@ -92,17 +105,21 @@ public class PlayerSpawnManager : NetworkBehaviour
     {
         Debug.Log($"[PlayerSpawnManager] Client connected: {clientId}");
 
-        // Henuz initialize olmadiysa atla
         if (!_hasInitialized)
         {
-            Debug.Log("[PlayerSpawnManager] Not initialized yet, skipping");
+            Debug.Log("[PlayerSpawnManager] Not initialized yet, skipping spawn");
             return;
         }
 
-        // Sahne kontrolu
         if (SceneManager.GetActiveScene().name != gameSceneName)
         {
             Debug.Log("[PlayerSpawnManager] Not in GameScene, skipping spawn");
+            return;
+        }
+
+        if (_spawnedPlayers.Contains(clientId))
+        {
+            Debug.Log($"[PlayerSpawnManager] Client {clientId} already spawned");
             return;
         }
 
@@ -113,7 +130,6 @@ public class PlayerSpawnManager : NetworkBehaviour
     {
         Debug.Log($"[PlayerSpawnManager] Starting spawn routine for client {clientId}");
 
-        // SpawnSystem yuklenene kadar bekle
         int attempts = 0;
         while (spawnSystem == null && attempts < 100)
         {
@@ -128,17 +144,21 @@ public class PlayerSpawnManager : NetworkBehaviour
             yield break;
         }
 
-        // Client hala bagli mi?
         if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
         {
             Debug.LogWarning($"[PlayerSpawnManager] Client {clientId} not found");
             yield break;
         }
 
-        // Zaten player object varsa atla
         if (client.PlayerObject != null)
         {
             Debug.Log($"[PlayerSpawnManager] Client {clientId} already has PlayerObject, skipping");
+            yield break;
+        }
+
+        if (_spawnedPlayers.Contains(clientId))
+        {
+            Debug.Log($"[PlayerSpawnManager] Client {clientId} already in spawned list");
             yield break;
         }
 
@@ -155,13 +175,12 @@ public class PlayerSpawnManager : NetworkBehaviour
             yield break;
         }
 
-        Debug.Log($"[PlayerSpawnManager] Spawning player {clientId} at {spawnPoint.position}");
+        Vector3 spawnPosition = spawnPoint.position;
+        Quaternion spawnRotation = spawnPoint.rotation;
 
-        GameObject playerInstance = Instantiate(
-            playerPrefab,
-            spawnPoint.position,
-            spawnPoint.rotation
-        );
+        Debug.Log($"[PlayerSpawnManager] Spawning player {clientId} at {spawnPosition}");
+
+        GameObject playerInstance = Instantiate(playerPrefab, spawnPosition, spawnRotation);
 
         NetworkObject netObj = playerInstance.GetComponent<NetworkObject>();
         if (netObj == null)
@@ -171,8 +190,57 @@ public class PlayerSpawnManager : NetworkBehaviour
             yield break;
         }
 
-        // Spawn!
         netObj.SpawnAsPlayerObject(clientId, true);
-        Debug.Log($"[PlayerSpawnManager] Player {clientId} spawned successfully (NetworkObjectId: {netObj.NetworkObjectId})");
+        _spawnedPlayers.Add(clientId);
+
+        yield return new WaitForSeconds(0.1f);
+
+        SetPlayerPositionClientRpc(clientId, spawnPosition, spawnRotation);
+
+        Debug.Log($"[PlayerSpawnManager] Player {clientId} spawned successfully");
+    }
+
+    [ClientRpc]
+    private void SetPlayerPositionClientRpc(ulong clientId, Vector3 position, Quaternion rotation)
+    {
+        if (NetworkManager.Singleton.LocalClientId != clientId) return;
+
+        var playerObject = NetworkManager.Singleton.LocalClient.PlayerObject;
+        if (playerObject == null)
+        {
+            Debug.LogWarning("[PlayerSpawnManager] PlayerObject not found for position set");
+            return;
+        }
+
+        StartCoroutine(ForcePositionRoutine(playerObject.gameObject, position, rotation));
+    }
+
+    private IEnumerator ForcePositionRoutine(GameObject player, Vector3 position, Quaternion rotation)
+    {
+        var controller = player.GetComponent<CharacterController>();
+        var networkTransform = player.GetComponent<ClientNetworkTransform>();
+
+        if (controller != null)
+            controller.enabled = false;
+
+        yield return null;
+
+        player.transform.position = position;
+        player.transform.rotation = rotation;
+
+        if (networkTransform != null)
+        {
+            networkTransform.Teleport(position, rotation, player.transform.localScale);
+        }
+
+        yield return null;
+
+        if (controller != null)
+        {
+            player.transform.position = position;
+            controller.enabled = true;
+        }
+
+        Debug.Log($"[PlayerSpawnManager] Position set to: {player.transform.position}");
     }
 }

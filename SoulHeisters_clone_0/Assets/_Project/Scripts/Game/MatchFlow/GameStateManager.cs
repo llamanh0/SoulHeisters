@@ -23,10 +23,10 @@ public class GameStateManager : NetworkBehaviour
     [SerializeField] private string gameSceneName = "GameScene";
 
     private float matchStartTime;
+    private bool _gameStarted = false;
 
     private void Awake()
     {
-        // SADECE GameScene'de instance olustur
         if (SceneManager.GetActiveScene().name != gameSceneName)
         {
             Debug.LogWarning("[GameStateManager] Not in GameScene, destroying");
@@ -40,22 +40,21 @@ public class GameStateManager : NetworkBehaviour
             return;
         }
         Instance = this;
-
         Debug.Log("[GameStateManager] Initialized in GameScene");
     }
 
     public override void OnNetworkSpawn()
     {
-        // Tekrar scene kontrolu
         if (SceneManager.GetActiveScene().name != gameSceneName)
         {
             Debug.LogWarning("[GameStateManager] OnNetworkSpawn not in GameScene, ignoring");
             return;
         }
 
-        if (IsServer)
+        if (IsServer && !_gameStarted)
         {
             Debug.Log("[GameStateManager] Starting game loop");
+            _gameStarted = true;
             StartCoroutine(GameLoop());
         }
     }
@@ -71,20 +70,27 @@ public class GameStateManager : NetworkBehaviour
     private IEnumerator WaitForPlayers()
     {
         currentState.Value = GameState.WaitingForPlayers;
-        
-        // Oyuncular spawn olana kadar bekle
-        while (NetworkManager.Singleton.ConnectedClients.Count < 1)
-            yield return null;
-        
-        // Biraz daha bekle (spawn islemleri tamamlansin)
-        yield return new WaitForSeconds(2f);
+        Debug.Log("[GameStateManager] Waiting for players...");
+
+        yield return new WaitForSeconds(0.5f);
+
+        int attempts = 0;
+        while (NetworkManager.Singleton.ConnectedClients.Count < 1 && attempts < 50)
+        {
+            attempts++;
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        Debug.Log($"[GameStateManager] {NetworkManager.Singleton.ConnectedClients.Count} players ready");
     }
 
     private IEnumerator StartingPhase()
     {
         currentState.Value = GameState.Starting;
-        yield return new WaitForSeconds(3f);
-        
+        Debug.Log("[GameStateManager] Match starting...");
+
+        yield return new WaitForSeconds(1f);
+
         Debug.Log("[GameStateManager] Match started!");
         OnMatchStarted?.Invoke();
     }
@@ -95,29 +101,27 @@ public class GameStateManager : NetworkBehaviour
         _networkMatchStartTime.Value = (float)NetworkManager.ServerTime.Time;
         currentState.Value = GameState.Playing;
 
+        Debug.Log("[GameStateManager] Playing phase started");
+
         while (!IsMatchFinished())
             yield return null;
-        
+
         Debug.Log("[GameStateManager] Match finished!");
     }
 
     public override void OnDestroy()
     {
         Debug.Log("[GameStateManager] OnDestroy");
-    
-        // Tum coroutine'leri durdur
         StopAllCoroutines();
     }
 
     private IEnumerator MatchEndPhase()
     {
         currentState.Value = GameState.MatchEnded;
-    
         OnMatchEnded?.Invoke();
-    
+
         yield return new WaitForSeconds(5f);
-    
-        // SADECE SERVER match'i bitirsin
+
         if (IsServer)
         {
             Debug.Log("[GameStateManager] Match ended, cleaning up");
@@ -127,7 +131,6 @@ public class GameStateManager : NetworkBehaviour
     private bool IsMatchFinished()
     {
         if (!IsServer) return false;
-
         float elapsed = Time.time - matchStartTime;
         return elapsed >= matchDuration;
     }
@@ -135,7 +138,6 @@ public class GameStateManager : NetworkBehaviour
     public float GetRemainingTime()
     {
         if (CurrentState != GameState.Playing) return matchDuration;
-
         float elapsed = (float)NetworkManager.ServerTime.Time - _networkMatchStartTime.Value;
         return Mathf.Max(0f, matchDuration - elapsed);
     }

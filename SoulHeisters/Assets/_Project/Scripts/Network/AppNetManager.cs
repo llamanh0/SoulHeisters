@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -7,11 +8,16 @@ public class AppNetManager : MonoBehaviour
     [Header("Scenes")]
     [SerializeField] private string lobbySceneName = "LobbyScene";
 
+    [Header("Connection")]
+    [SerializeField] private float connectionTimeout = 10f;
+
     public static AppNetManager Instance { get; private set; }
 
     public event Action OnRelayReady;
     public event Action<string> OnRelayError;
     public bool IsReady { get; private set; }
+
+    private Coroutine _timeoutCoroutine;
 
     private void Awake()
     {
@@ -37,6 +43,9 @@ public class AppNetManager : MonoBehaviour
     {
         if (NetworkManager.Singleton != null)
             CleanupNetworkCallbacks();
+
+        if (_timeoutCoroutine != null)
+            StopCoroutine(_timeoutCoroutine);
     }
 
     private void SetupNetworkCallbacks()
@@ -62,6 +71,8 @@ public class AppNetManager : MonoBehaviour
         Debug.Log("[AppNetManager] Starting Host...");
         IsReady = false;
 
+        _timeoutCoroutine = StartCoroutine(ConnectionTimeoutRoutine("Host creation"));
+
         try
         {
             await RelayManager.Instance.InitializeAsync();
@@ -71,6 +82,13 @@ public class AppNetManager : MonoBehaviour
             {
                 Debug.Log("[AppNetManager] Host started successfully");
                 IsReady = true;
+
+                if (_timeoutCoroutine != null)
+                {
+                    StopCoroutine(_timeoutCoroutine);
+                    _timeoutCoroutine = null;
+                }
+
                 OnRelayReady?.Invoke();
 
                 if (!string.IsNullOrEmpty(lobbySceneName))
@@ -88,6 +106,13 @@ public class AppNetManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[AppNetManager] StartHost failed: {e.Message}");
+
+            if (_timeoutCoroutine != null)
+            {
+                StopCoroutine(_timeoutCoroutine);
+                _timeoutCoroutine = null;
+            }
+
             OnRelayError?.Invoke(e.Message);
         }
     }
@@ -96,6 +121,8 @@ public class AppNetManager : MonoBehaviour
     {
         Debug.Log($"[AppNetManager] Starting Client with code: {joinCode}");
         IsReady = false;
+
+        _timeoutCoroutine = StartCoroutine(ConnectionTimeoutRoutine("Connection"));
 
         try
         {
@@ -106,6 +133,13 @@ public class AppNetManager : MonoBehaviour
             {
                 Debug.Log("[AppNetManager] Client started successfully");
                 IsReady = true;
+
+                if (_timeoutCoroutine != null)
+                {
+                    StopCoroutine(_timeoutCoroutine);
+                    _timeoutCoroutine = null;
+                }
+
                 OnRelayReady?.Invoke();
             }
             else
@@ -116,8 +150,26 @@ public class AppNetManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[AppNetManager] StartClient failed: {e.Message}");
+
+            if (_timeoutCoroutine != null)
+            {
+                StopCoroutine(_timeoutCoroutine);
+                _timeoutCoroutine = null;
+            }
+
             OnRelayError?.Invoke(e.Message);
         }
+    }
+
+    private IEnumerator ConnectionTimeoutRoutine(string operation)
+    {
+        yield return new WaitForSeconds(connectionTimeout);
+
+        Debug.LogWarning($"[AppNetManager] {operation} timeout");
+        OnRelayError?.Invoke($"{operation} timed out");
+
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.Shutdown();
     }
 
     public void StartServer()

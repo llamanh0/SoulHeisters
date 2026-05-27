@@ -2,99 +2,107 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Ana menu kontrolcusu
-/// Panel gecisleri ve buton eventlerini yonetir
-/// </summary>
 public class MainMenuController : MonoBehaviour
 {
-    #region UI Panels
-
     [Header("Panels")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject playMenuPanel;
     [SerializeField] private GameObject joinMenuPanel;
-
-    #endregion
-
-    #region Main Menu Buttons
+    [SerializeField] private GameObject loadingPanel;
+    [SerializeField] private TextMeshProUGUI loadingText;
 
     [Header("Main Menu")]
     [SerializeField] private Button playButton;
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button quitButton;
 
-    #endregion
-
-    #region Play Menu Buttons
-
     [Header("Play Menu")]
     [SerializeField] private Button createGameButton;
     [SerializeField] private Button joinGameButton;
     [SerializeField] private Button playBackButton;
 
-    #endregion
-
-    #region Join Menu
-
     [Header("Join Menu")]
     [SerializeField] private TMP_InputField lobbyCodeInput;
     [SerializeField] private Button joinButton;
     [SerializeField] private Button joinBackButton;
-
-    #endregion
-
-    #region Unity Lifecycle
+    [SerializeField] private TextMeshProUGUI errorText;
 
     private void Start()
     {
         SetupButtons();
+        SetupAppNetEvents();
         ShowMainMenu();
+
+        if (loadingPanel != null)
+            loadingPanel.SetActive(false);
+
+        if (errorText != null)
+            errorText.gameObject.SetActive(false);
     }
 
-    #endregion
-
-    #region Setup
+    private void OnDestroy()
+    {
+        if (AppNetManager.Instance != null)
+        {
+            AppNetManager.Instance.OnRelayReady -= HandleRelayReady;
+            AppNetManager.Instance.OnRelayError -= HandleRelayError;
+        }
+    }
 
     private void SetupButtons()
     {
-        // Main menu
         if (playButton != null)
             playButton.onClick.AddListener(OnPlayClicked);
-
         if (settingsButton != null)
             settingsButton.onClick.AddListener(OnSettingsClicked);
-
         if (quitButton != null)
             quitButton.onClick.AddListener(OnQuitClicked);
-
-        // Play menu
         if (createGameButton != null)
             createGameButton.onClick.AddListener(OnCreateGameClicked);
-
         if (joinGameButton != null)
             joinGameButton.onClick.AddListener(OnJoinGameClicked);
-
         if (playBackButton != null)
             playBackButton.onClick.AddListener(ShowMainMenu);
-
-        // Join menu
         if (joinButton != null)
             joinButton.onClick.AddListener(OnJoinLobbyClicked);
-
         if (joinBackButton != null)
             joinBackButton.onClick.AddListener(ShowPlayMenu);
     }
 
-    #endregion
+    private void SetupAppNetEvents()
+    {
+        if (AppNetManager.Instance == null) return;
 
-    #region Panel Navigation
+        AppNetManager.Instance.OnRelayReady += HandleRelayReady;
+        AppNetManager.Instance.OnRelayError += HandleRelayError;
+    }
+
+    private void HandleRelayReady()
+    {
+        HideLoading();
+        HideError();
+    }
+
+    private void HandleRelayError(string error)
+    {
+        Debug.LogError($"[MainMenu] Connection error: {error}");
+
+        HideLoading();
+        ShowError("Connection failed. Check the code and try again.");
+        ShowJoinMenu();
+
+        if (Unity.Netcode.NetworkManager.Singleton != null)
+        {
+            Unity.Netcode.NetworkManager.Singleton.Shutdown();
+        }
+    }
 
     private void ShowMainMenu()
     {
         SetPanelActive(mainMenuPanel, true);
         SetPanelActive(playMenuPanel, false);
         SetPanelActive(joinMenuPanel, false);
+        HideError();
     }
 
     private void ShowPlayMenu()
@@ -102,6 +110,7 @@ public class MainMenuController : MonoBehaviour
         SetPanelActive(mainMenuPanel, false);
         SetPanelActive(playMenuPanel, true);
         SetPanelActive(joinMenuPanel, false);
+        HideError();
     }
 
     private void ShowJoinMenu()
@@ -111,20 +120,41 @@ public class MainMenuController : MonoBehaviour
         SetPanelActive(joinMenuPanel, true);
     }
 
+    private void ShowLoading(string message = "Connecting...")
+    {
+        if (loadingPanel != null)
+            loadingPanel.SetActive(true);
+        if (loadingText != null)
+            loadingText.text = message;
+    }
+
+    private void HideLoading()
+    {
+        if (loadingPanel != null)
+            loadingPanel.SetActive(false);
+    }
+
+    private void ShowError(string message)
+    {
+        if (errorText != null)
+        {
+            errorText.text = message;
+            errorText.gameObject.SetActive(true);
+        }
+    }
+
+    private void HideError()
+    {
+        if (errorText != null)
+            errorText.gameObject.SetActive(false);
+    }
+
     private void SetPanelActive(GameObject panel, bool active)
     {
-        if (panel != null)
-            panel.SetActive(active);
+        if (panel != null) panel.SetActive(active);
     }
 
-    #endregion
-
-    #region Button Callbacks
-
-    private void OnPlayClicked()
-    {
-        ShowPlayMenu();
-    }
+    private void OnPlayClicked() => ShowPlayMenu();
 
     private void OnSettingsClicked()
     {
@@ -133,28 +163,23 @@ public class MainMenuController : MonoBehaviour
 
     private void OnQuitClicked()
     {
-        Debug.Log("[MainMenu] Quitting game...");
         Application.Quit();
-
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
-        #endif
+#endif
     }
 
     private void OnCreateGameClicked()
     {
-        Debug.Log("[MainMenu] Creating lobby...");
+        if (AppNetManager.Instance == null) return;
 
-        if (AppNetManager.Instance != null)
-        {
-            AppNetManager.Instance.StartHost();
-        }
+        ShowLoading("Creating lobby...");
+        SetPanelActive(playMenuPanel, false);
+
+        AppNetManager.Instance.StartHost();
     }
 
-    private void OnJoinGameClicked()
-    {
-        ShowJoinMenu();
-    }
+    private void OnJoinGameClicked() => ShowJoinMenu();
 
     private void OnJoinLobbyClicked()
     {
@@ -162,14 +187,14 @@ public class MainMenuController : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(code))
         {
-            Debug.LogWarning("[MainMenu] Join code is empty!");
+            ShowError("Please enter a join code");
             return;
         }
 
+        HideError();
+        ShowLoading($"Joining {code}...");
         SetPanelActive(joinMenuPanel, false);
 
         AppNetManager.Instance.StartClient(code);
     }
-
-    #endregion
 }
