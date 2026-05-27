@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e05af5405bbf4a14aa75875deb0dcf39
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Shared Assets/Shaders/ToonScapes_Terrain AddPass.shader
+  uploadId: 864486

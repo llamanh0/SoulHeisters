@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f0c7d565b1092de4a8d25e2984672220
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Shared Assets/Shaders/ToonScapes_Surface.shader
+  uploadId: 864486

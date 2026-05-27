@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 086184e8117743e48a7f8b0571cfb919
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8574412962073106934
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Terrain/Terrain Data/Layer_TSI_Terrain_Stone_01A.terrainlayer
+  uploadId: 864486

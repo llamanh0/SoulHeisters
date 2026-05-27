@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 3ab5dbec17b9c934fb7cae3900a297d8
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Shared Assets/Shaders/ToonScapes_Water.shader
+  uploadId: 864486

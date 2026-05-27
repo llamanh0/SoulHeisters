@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ed8f1d6a98c1d6c4e9cdaa6a03f5738e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Models/Materials/TSI_Stone_Ruins_1B.mat
+  uploadId: 864486

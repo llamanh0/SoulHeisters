@@ -125,7 +125,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (visualObj.TryGetComponent<Rigidbody>(out var rb))
         {
-            rb.velocity = dir * projectileSpeed;
+            rb.linearVelocity = dir * projectileSpeed;
         }
 
         Destroy(visualObj, 5f);

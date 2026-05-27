@@ -158,21 +158,17 @@ public class MainMenuController : MonoBehaviour
 
     private void OnJoinLobbyClicked()
     {
-        string code = lobbyCodeInput != null ? lobbyCodeInput.text : "";
+        string code = lobbyCodeInput != null ? lobbyCodeInput.text.Trim() : "";
 
         if (string.IsNullOrWhiteSpace(code))
         {
-            Debug.LogWarning("[MainMenu] Lobby code is empty!");
+            Debug.LogWarning("[MainMenu] Join code is empty!");
             return;
         }
 
-        Debug.Log($"[MainMenu] Joining lobby with code: {code}");
+        SetPanelActive(joinMenuPanel, false);
 
-        // TODO: Relay ile baglanti
-        if (AppNetManager.Instance != null)
-        {
-            AppNetManager.Instance.StartClient();
-        }
+        AppNetManager.Instance.StartClient(code);
     }
 
     #endregion

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2fc983136020ff1428c8f1c3537dede1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Models/Materials/TSI_Terrain.mat
+  uploadId: 864486

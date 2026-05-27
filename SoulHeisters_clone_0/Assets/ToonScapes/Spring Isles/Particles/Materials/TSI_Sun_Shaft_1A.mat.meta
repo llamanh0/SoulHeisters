@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ad249232c8109734b868e78676dad6e5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Particles/Materials/TSI_Sun_Shaft_1A.mat
+  uploadId: 864486

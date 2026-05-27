@@ -40,7 +40,7 @@ public class ProjectileController : NetworkBehaviour
         _hasHit = false;
 
         // Baslangic hizi ver
-        _rb.velocity = direction * speed;
+        _rb.linearVelocity = direction * speed;
 
         // Belirli bir sure sonra mermiyi otomatik yok et
         Invoke(nameof(DestroyProjectile), lifeTime);

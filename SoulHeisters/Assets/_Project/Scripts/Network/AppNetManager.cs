@@ -1,13 +1,17 @@
-﻿using Unity.Netcode;
+﻿using System;
+using Unity.Netcode;
 using UnityEngine;
 
 public class AppNetManager : MonoBehaviour
 {
     [Header("Scenes")]
     [SerializeField] private string lobbySceneName = "LobbyScene";
-    //[SerializeField] private string gameSceneName = "GameScene";
 
     public static AppNetManager Instance { get; private set; }
+
+    public event Action OnRelayReady;
+    public event Action<string> OnRelayError;
+    public bool IsReady { get; private set; }
 
     private void Awake()
     {
@@ -18,7 +22,6 @@ public class AppNetManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
         Application.runInBackground = true;
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = 60;
@@ -27,17 +30,13 @@ public class AppNetManager : MonoBehaviour
     private void OnEnable()
     {
         if (NetworkManager.Singleton != null)
-        {
             SetupNetworkCallbacks();
-        }
     }
 
     private void OnDisable()
     {
         if (NetworkManager.Singleton != null)
-        {
             CleanupNetworkCallbacks();
-        }
     }
 
     private void SetupNetworkCallbacks()
@@ -45,9 +44,7 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
-        
-        // HATA CIKARSA BURAYA GERI DON!
-        //NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
+        NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
     }
 
     private void CleanupNetworkCallbacks()
@@ -55,148 +52,71 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnected;
-        //NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
+
+        if (NetworkManager.Singleton.SceneManager != null)
+            NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
     }
 
-    #region Scene Event Handling
-
-    private void HandleSceneEvent(SceneEvent sceneEvent)
-    {
-        if (sceneEvent.SceneEventType == SceneEventType.Load)
-        {
-            Debug.Log($"[AppNetManager] Scene loading: {sceneEvent.SceneName}");
-        
-            // YENİ SCENE YUKLENMEDEN ONCE TUM COROUTINE'LERI DURDUR
-            StopAllCoroutinesInScene();
-        
-            // Player cleanup
-            CleanupPlayerObjectsBeforeSceneChange();
-        }
-        else if (sceneEvent.SceneEventType == SceneEventType.LoadComplete)
-        {
-            Debug.Log($"[AppNetManager] Scene loaded: {sceneEvent.SceneName}");
-        }
-    }
-
-    private void StopAllCoroutinesInScene()
-    {
-        // Tum MonoBehaviour'lardaki coroutine'leri durdur
-        var allMonoBehaviours = FindObjectsOfType<MonoBehaviour>();
-    
-        foreach (var mb in allMonoBehaviours)
-        {
-            if (mb != null && mb.gameObject != null)
-            {
-                mb.StopAllCoroutines();
-            }
-        }
-    
-        Debug.Log($"[AppNetManager] Stopped coroutines in {allMonoBehaviours.Length} MonoBehaviours");
-    }
-
-    private void CleanupPlayerObjectsBeforeSceneChange()
-    {
-        // SADECE SERVER/HOST'TA CALIS
-        if (!NetworkManager.Singleton.IsServer)
-        {
-            Debug.Log("[AppNetManager] Not server, skipping player cleanup");
-            return;
-        }
-
-        Debug.Log("[AppNetManager] Cleaning up player objects before scene change");
-
-        int cleanedCount = 0;
-
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
-        {
-            if (client.PlayerObject != null)
-            {
-                var playerObj = client.PlayerObject;
-                
-                if (playerObj != null && playerObj.gameObject != null && playerObj.IsSpawned)
-                {
-                    Debug.Log($"[AppNetManager] Despawning player object for client {client.ClientId}");
-                    playerObj.Despawn(false); // false = destroy etme, sadece despawn
-                    cleanedCount++;
-                }
-            }
-        }
-
-        Debug.Log($"[AppNetManager] Cleaned {cleanedCount} player objects");
-    }
-
-    #endregion
-
-    #region Connection Callbacks
-
-    private void HandleServerStarted()
-    {
-        Debug.Log("[AppNetManager] Server started");
-    }
-
-    private void HandleClientConnected(ulong clientId)
-    {
-        Debug.Log($"[AppNetManager] Player connected => ID: {clientId}");
-
-        if (clientId == NetworkManager.Singleton.LocalClientId)
-        {
-            Debug.Log("[AppNetManager] You connected successfully!");
-        }
-    }
-
-    private void HandleClientDisconnected(ulong clientId)
-    {
-        Debug.Log($"[AppNetManager] Player disconnected => ID: {clientId}");
-
-        if (clientId == NetworkManager.Singleton.LocalClientId)
-        {
-            Debug.Log("[AppNetManager] You disconnected!");
-        }
-    }
-
-    #endregion
-
-    #region Start Methods
-
-    public void StartHost()
+    public async void StartHost()
     {
         Debug.Log("[AppNetManager] Starting Host...");
+        IsReady = false;
 
-        if (NetworkManager.Singleton.StartHost())
+        try
         {
-            Debug.Log("[AppNetManager] Host started successfully");
+            await RelayManager.Instance.InitializeAsync();
+            string joinCode = await RelayManager.Instance.CreateRelayAndGetJoinCode();
 
-            if (!string.IsNullOrEmpty(lobbySceneName))
+            if (NetworkManager.Singleton.StartHost())
             {
-                NetworkManager.Singleton.SceneManager.LoadScene(
-                    lobbySceneName, 
-                    UnityEngine.SceneManagement.LoadSceneMode.Single);
+                Debug.Log("[AppNetManager] Host started successfully");
+                IsReady = true;
+                OnRelayReady?.Invoke();
+
+                if (!string.IsNullOrEmpty(lobbySceneName))
+                {
+                    NetworkManager.Singleton.SceneManager.LoadScene(
+                        lobbySceneName,
+                        UnityEngine.SceneManagement.LoadSceneMode.Single);
+                }
+            }
+            else
+            {
+                throw new Exception("NetworkManager.StartHost() returned false");
             }
         }
-        else
+        catch (Exception e)
         {
-            Debug.LogError("[AppNetManager] Failed to start Host!");
+            Debug.LogError($"[AppNetManager] StartHost failed: {e.Message}");
+            OnRelayError?.Invoke(e.Message);
         }
     }
 
-    public void StartClient()
+    public async void StartClient(string joinCode)
     {
-        Debug.Log("[AppNetManager] Starting Client...");
+        Debug.Log($"[AppNetManager] Starting Client with code: {joinCode}");
+        IsReady = false;
 
-        var transport = NetworkManager.Singleton.GetComponent<Unity.Netcode.Transports.UTP.UnityTransport>();
-        if (transport != null)
+        try
         {
-            transport.ConnectionData.Address = "127.0.0.1";
-            transport.ConnectionData.Port = 7777;
-        }
+            await RelayManager.Instance.InitializeAsync();
+            await RelayManager.Instance.JoinRelayWithCode(joinCode);
 
-        if (NetworkManager.Singleton.StartClient())
-        {
-            Debug.Log("[AppNetManager] Client started successfully");
+            if (NetworkManager.Singleton.StartClient())
+            {
+                Debug.Log("[AppNetManager] Client started successfully");
+                IsReady = true;
+                OnRelayReady?.Invoke();
+            }
+            else
+            {
+                throw new Exception("NetworkManager.StartClient() returned false");
+            }
         }
-        else
+        catch (Exception e)
         {
-            Debug.LogError("[AppNetManager] Failed to start Client!");
+            Debug.LogError($"[AppNetManager] StartClient failed: {e.Message}");
+            OnRelayError?.Invoke(e.Message);
         }
     }
 
@@ -206,5 +126,42 @@ public class AppNetManager : MonoBehaviour
         NetworkManager.Singleton.StartServer();
     }
 
-    #endregion
+    private void HandleSceneEvent(SceneEvent sceneEvent)
+    {
+        switch (sceneEvent.SceneEventType)
+        {
+            case SceneEventType.Load:
+                Debug.Log($"[AppNetManager] Scene loading: {sceneEvent.SceneName}");
+                break;
+
+            case SceneEventType.LoadComplete:
+                Debug.Log($"[AppNetManager] Scene loaded: {sceneEvent.SceneName}");
+                break;
+
+            case SceneEventType.UnloadComplete:
+                Debug.Log($"[AppNetManager] Scene unloaded: {sceneEvent.SceneName}");
+                break;
+        }
+    }
+
+    private void HandleServerStarted()
+    {
+        Debug.Log("[AppNetManager] Server started");
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        Debug.Log($"[AppNetManager] Client connected: {clientId}");
+    }
+
+    private void HandleClientDisconnected(ulong clientId)
+    {
+        Debug.Log($"[AppNetManager] Client disconnected: {clientId}");
+
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+            Debug.Log("[AppNetManager] Local client disconnected, returning to menu");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MenuScene");
+        }
+    }
 }

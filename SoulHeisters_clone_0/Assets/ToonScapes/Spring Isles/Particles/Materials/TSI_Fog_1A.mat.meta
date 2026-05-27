@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ebe4d0d34047db47bfd7172b68ea8ed
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Particles/Materials/TSI_Fog_1A.mat
+  uploadId: 864486

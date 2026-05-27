@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 46efac5cc3ed6c04384a403ab307b14e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Models/Materials/TSI_Rocks_8C.mat
+  uploadId: 864486

@@ -57,14 +57,11 @@ public class LobbyManager : NetworkBehaviour
             NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnected;
 
-            // Lobi kodu olustur
-            GenerateLobbyCode();
+            WaitForRelayCode();
 
-            // MEVCUT OYUNCULARI MANUEL EKLE (ÇOK ÖNEMLİ!)
             foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
             {
                 Debug.Log($"[LobbyManager] Adding existing client: {client.ClientId}");
-            
                 string playerName = $"Player{client.ClientId}";
                 PlayerLobbyData newPlayer = new PlayerLobbyData(client.ClientId, playerName, false);
                 _playersInLobby.Add(newPlayer);
@@ -73,15 +70,11 @@ public class LobbyManager : NetworkBehaviour
             Debug.Log($"[LobbyManager] Total players added: {_playersInLobby.Count}");
         }
 
-        // Liste degisikliklerini dinle
         _playersInLobby.OnListChanged += HandleLobbyListChanged;
 
-        // UI'i guncelle
         if (lobbyUI != null)
         {
             lobbyUI.SetLobbyCode(_lobbyCode);
-
-            // Mevcut oyunculari UI'a yukle
             Debug.Log($"[LobbyManager] Loading {_playersInLobby.Count} players to UI");
             foreach (var player in _playersInLobby)
             {
@@ -92,6 +85,23 @@ public class LobbyManager : NetworkBehaviour
         else
         {
             Debug.LogError("[LobbyManager] LobbyUI is NULL!");
+        }
+    }
+
+    private async void WaitForRelayCode()
+    {
+        int attempts = 0;
+        while (string.IsNullOrEmpty(RelayManager.Instance.CurrentJoinCode) && attempts < 50)
+        {
+            await System.Threading.Tasks.Task.Delay(100);
+            attempts++;
+        }
+
+        GenerateLobbyCode();
+
+        if (lobbyUI != null)
+        {
+            lobbyUI.SetLobbyCode(_lobbyCode);
         }
     }
 
@@ -189,17 +199,20 @@ public class LobbyManager : NetworkBehaviour
 
     private void GenerateLobbyCode()
     {
-        // Basit 6 karakterlik kod
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        System.Text.StringBuilder code = new System.Text.StringBuilder();
-
-        for (int i = 0; i < 6; i++)
+        if (RelayManager.Instance != null && !string.IsNullOrEmpty(RelayManager.Instance.CurrentJoinCode))
         {
-            code.Append(chars[Random.Range(0, chars.Length)]);
+            _lobbyCode = RelayManager.Instance.CurrentJoinCode;
+            Debug.Log($"[LobbyManager] Using Relay join code: {_lobbyCode}");
         }
-
-        _lobbyCode = code.ToString();
-        Debug.Log($"[LobbyManager] Generated lobby code: {_lobbyCode}");
+        else
+        {
+            const string chars = "6789BCDFGHJKLMNPQRTW";
+            System.Text.StringBuilder code = new System.Text.StringBuilder();
+            for (int i = 0; i < 6; i++)
+                code.Append(chars[Random.Range(0, chars.Length)]);
+            _lobbyCode = code.ToString();
+            Debug.Log($"[LobbyManager] Generated fallback code: {_lobbyCode}");
+        }
     }
 
     [ClientRpc]

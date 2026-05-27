@@ -1,0 +1,385 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: TSI_Skybox_01A
+  m_Shader: {fileID: 4800000, guid: f9baebe7fc14e7140ae4a9556fb0739e, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _ENABLEFOG_ON
+  - _ENABLESUN_ON
+  - _MOONDIRECTION_LIGHTDIRECTIONOPPOSITE
+  m_InvalidKeywords: []
+  m_LightmapFlags: 0
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BackgroundCubemap:
+        m_Texture: {fileID: 8900000, guid: eda8b6c8a93001a4eb6a210e66ef9823, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CloudTexLayer1:
+        m_Texture: {fileID: 2800000, guid: 53221c960fe9460439f4fb07794b72b4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Cubemap1:
+        m_Texture: {fileID: 8900000, guid: 47267f1c47854894b873ffb58ac0d7ab, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Cubemap2:
+        m_Texture: {fileID: 8900000, guid: e2d43ff60ecce024db95a6edd7cc92cf, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Cubemap3:
+        m_Texture: {fileID: 8900000, guid: 4149bad537f951744888246b4409afaa, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CubemapNoise:
+        m_Texture: {fileID: 8900000, guid: b6eb61c1b8a91a042ade0fc9b6110f98, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ForegroundCubemap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: dad59f3fd10bba14ba944d330f2305d4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MidgroundCubemap:
+        m_Texture: {fileID: 8900000, guid: 4149bad537f951744888246b4409afaa, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MoonTexture:
+        m_Texture: {fileID: 2800000, guid: bb1b8f45f18cbf849aeb61eae3b80693, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseCubemap:
+        m_Texture: {fileID: 8900000, guid: 4f0fc98df3791f448bfae38a27a9e849, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: 57458fa642d243c5ab86f0367e0b01c9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTex1:
+        m_Texture: {fileID: 8900000, guid: 4f0fc98df3791f448bfae38a27a9e849, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Tex:
+        m_Texture: {fileID: 8900000, guid: 47267f1c47854894b873ffb58ac0d7ab, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TextureSample0:
+        m_Texture: {fileID: 2800000, guid: 714422279a604e94e920e8ea113b247f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AAAA: 1
+    - _AAAAA: -0.91
+    - _AddPrecomputedVelocity: 1
+    - _BackgroundCoverageMaskRotation: 148
+    - _BackgroundCoverageMaskSpeed: 1.25
+    - _BackgroundCoverageStrength: 0
+    - _BackgroundDistortionAmount: 0.1
+    - _BackgroundDistortionSpeed: 0.5
+    - _BackgroundExposure: 0.5
+    - _BackgroundGradientBlend: 0.5
+    - _BackgroundNoiseSpeed: 1.25
+    - _BackgroundOpacity: 1
+    - _BackgroundRotation: 253
+    - _BackgroundRotationSpeed: 0
+    - _BackgroundSpecularAngle: 1
+    - _BackgroundSpecularIntensity: 0.6
+    - _BackgroundSpecularSharpness: 3
+    - _BackgroundSubsurfaceAmount: 1
+    - _BackgroundSubsurfaceSharpness: 12
+    - _BumpScale: 1
+    - _CloudEdgeShift: 0
+    - _CloudLayer1TintAmount: 0.5
+    - _CloudTiling: 0
+    - _CloudTintAmount: 0.58
+    - _CloudTintStrength: 1
+    - _CoverageMask1Rotation: 0
+    - _CoverageMask1RotationSpeed: 0
+    - _CoverageMask2Rotation: 0
+    - _CoverageMask2RotationSpeed: 0
+    - _CoverageMask3Rotation: 0
+    - _CoverageMask3RotationSpeed: 0
+    - _Cutoff: 0.5
+    - _DS: 0.8
+    - _DayNightBlend: 0
+    - _DetailNormalMapScale: 1
+    - _DetailScale: 0.5
+    - _DetailStrength: 0.34
+    - _DistStrength: 0.2
+    - _DistortionAmount1: 0.1
+    - _DistortionAmount2: 0.1
+    - _DistortionAmount3: 0.1
+    - _DistortionStrength: 1
+    - _DstBlend: 0
+    - _EdgeSharpness: 0.83
+    - _EnableFog: 1
+    - _EnableMoon: 0
+    - _EnableRotation: 0
+    - _EnableSun: 1
+    - _Exposure: 0.15
+    - _Exposure1: 0.35
+    - _Exposure2: 0.35
+    - _Exposure3: 0.35
+    - _Float10: 0.5
+    - _Float11: 1.26
+    - _Float14: 2
+    - _Float19: 1
+    - _Float21: 15
+    - _Float22: 55
+    - _Float23: 125
+    - _Float24: 195
+    - _Float25: 235
+    - _Float44: 305
+    - _Float45: 2
+    - _FogFill: 0
+    - _FogHeight: 0.543
+    - _FogHeight1: 0.627
+    - _FogOpacity: 0.564
+    - _FogSmoothness: 0.416
+    - _FogSmoothness1: 0.01
+    - _ForegroundCoverageMaskRotation: 59
+    - _ForegroundCoverageMaskSpeed: 1.25
+    - _ForegroundCoverageStrength: 0.51
+    - _ForegroundDistortionAmount: 0.1
+    - _ForegroundDistortionSpeed: 1.25
+    - _ForegroundExposure: 0.48
+    - _ForegroundGradientBlend: 0.514
+    - _ForegroundNoiseSpeed: 1.25
+    - _ForegroundOpacity: 0
+    - _ForegroundRotation: 114
+    - _ForegroundRotationSpeed: 1
+    - _ForegroundSpecularAngle: 1
+    - _ForegroundSpecularIntensity: 1
+    - _ForegroundSpecularSharpness: 1
+    - _ForegroundSubsurfaceAmount: 0
+    - _ForegroundSubsurfaceSharpness: 1
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _GradientStrength: 0.2
+    - _ImageType: 0
+    - _IncidentMultiplier: 1.5
+    - _Layer1CoverageStrength: 0
+    - _Layer1GradientBlend: 0.308
+    - _Layer1GradientBlend1: 0.518
+    - _Layer1GradientBlending: 0.5
+    - _Layer1Opacity: 1
+    - _Layer2CoverageStrength: 0.47
+    - _Layer2GradientBlend: 0.491
+    - _Layer2GradientBlend1: 0.336
+    - _Layer2Opacity: 1
+    - _Layer3CoverageStrength: 0
+    - _Layer3GradientBlend: 0.349
+    - _Layer3GradientBlend1: 0.35
+    - _Layer3Opacity: 1
+    - _LayerGradientBlend2: 0.376
+    - _Layout: 0
+    - _Mapping: 1
+    - _Metallic: 0
+    - _MidgroundCoverageMaskRotation: 109
+    - _MidgroundCoverageMaskSpeed: 1.25
+    - _MidgroundCoverageStrength: 0
+    - _MidgroundDistortionAmount: 0.125
+    - _MidgroundDistortionSpeed: 1
+    - _MidgroundExposure: 1
+    - _MidgroundGradientBlend: 0.98
+    - _MidgroundNoiseSpeed: 1.25
+    - _MidgroundOpacity: 1
+    - _MidgroundRotation: 276
+    - _MidgroundRotationSpeed: 0
+    - _MidgroundSpecularAngle: 1
+    - _MidgroundSpecularIntensity: 0.6
+    - _MidgroundSpecularSharpness: 1
+    - _MidgroundSpeed: 1
+    - _MidgroundSubsurfaceAmount: 1
+    - _MidgroundSubsurfaceSharpness: 12
+    - _MirrorOnBack: 0
+    - _Mode: 0
+    - _MoonDirection: 1
+    - _MoonDistance: 19.75
+    - _MoonIntensity: 3
+    - _MoonOffsetRotation: 14
+    - _MoonScale: 12
+    - _MoonSharpness: 250
+    - _MoonSize: 1.39
+    - _NEW: 2
+    - _NoiseScale: 0.000000001
+    - _NoiseSpeed: -1.31
+    - _NoiseSpeed1: 0
+    - _NoiseSpeed2: 0
+    - _NoiseSpeed3: 0
+    - _NoiseStrength: 1
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    - _RAD: 19.85
+    - _RimIntensity: 1
+    - _RimMax: 0.5
+    - _RimMax1: 0
+    - _RimSharpness: 870.54
+    - _Rotation: 24
+    - _Rotation1: 187
+    - _Rotation2: 145
+    - _Rotation3: 256
+    - _RotationSpeed: 0
+    - _RotationSpeed1: 0
+    - _RotationSpeed2: 0
+    - _RotationSpeed3: 0
+    - _SmoothnessTextureChannel: 0
+    - _SpecularAngle1: 5
+    - _SpecularAngle2: 5
+    - _SpecularAngle3: 5
+    - _SpecularHighlights: 1
+    - _SpecularIntensity: 12.97
+    - _SpecularIntensity1: 0.5
+    - _SpecularIntensity2: 0.5
+    - _SpecularIntensity3: 0.5
+    - _SpecularSharpness: 6.97
+    - _SpecularSharpness1: 1.5
+    - _SpecularSharpness2: 1.5
+    - _SpecularSharpness3: 1.5
+    - _SrcBlend: 1
+    - _SubsurfaceAmount1: 1
+    - _SubsurfaceAmount2: 1
+    - _SubsurfaceAmount3: 1
+    - _SubsurfaceSharpness: 1.33
+    - _SubsurfaceSharpness1: 50
+    - _SubsurfaceSharpness2: 50
+    - _SubsurfaceSharpness3: 50
+    - _SunDistortion: 0.15
+    - _SunFocus: 0.64
+    - _SunIntensity: 12
+    - _SunRimIntensity: 0.05
+    - _SunRimSharpness: 450
+    - _SunScale: 0.05
+    - _SunSharpness: 0.42
+    - _SunSharpness1: 1
+    - _SunSharpness2: 628.93
+    - _SunSize: 0.00125
+    - _TimeOfDay: 0
+    - _UVSec: 0
+    - _XA: 0.14
+    - _XB: -0.57
+    - _XC: -0.91
+    - _ZWrite: 1
+    - __dirty: 1
+    m_Colors:
+    - _BackgroundDistortionDirection: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _BackgroundTint1: {r: 1, g: 1, b: 1, a: 1}
+    - _CloudTint1: {r: 0, g: 0, b: 1, a: 1}
+    - _CloudTint2: {r: 0, g: 1, b: 0, a: 1}
+    - _CloudTint3: {r: 1, g: 0, b: 0, a: 1}
+    - _Cloud_Tint: {r: 1, g: 1, b: 1, a: 0}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color0: {r: 1, g: 1, b: 1, a: 0}
+    - _DX: {r: 0.5, g: 0.5, b: 0, a: 0}
+    - _DX1: {r: 0.1, g: 0.1, b: 0, a: 0}
+    - _DY: {r: 0, g: 0.1, b: 0, a: 0}
+    - _DistortionDirection: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _DistortionDirection1: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _DistortionDirection2: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _DistortionDirection3: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EquatorColorDay: {r: 0, g: 0.6394634, b: 0.9150943, a: 1}
+    - _EquatorColorNight: {r: 0.042052332, g: 0.18687274, b: 0.4245283, a: 1}
+    - _EquatorColorTwilight: {r: 1, g: 0.57852864, b: 0.48584908, a: 1}
+    - _FixedDirection: {r: 0, g: 1, b: 0, a: 0}
+    - _ForegroundDistortionDirection: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _ForegroundTint1: {r: 1, g: 1, b: 1, a: 1}
+    - _MidgroundDistortionDirection: {r: 0.1, g: 0, b: 0.1, a: 0}
+    - _MidgroundTint1: {r: 1, g: 1, b: 1, a: 1}
+    - _MoonColor: {r: 0.759434, g: 0.8906878, b: 1, a: 1}
+    - _MoonDirection: {r: 2.13, g: 0, b: 0, a: 0}
+    - _MoonOffset: {r: 0, g: 1.8, b: 0, a: 0}
+    - _NadirColorDay: {r: 0, g: 0.3675041, b: 1, a: 1}
+    - _NadirColorNight: {r: 0.14117648, g: 0.14537756, b: 0.16862746, a: 1}
+    - _NadirColorTwilight: {r: 0, g: 0, b: 1, a: 1}
+    - _NoiseSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _SkyColorDay: {r: 1, g: 1, b: 1, a: 1}
+    - _SkyColorNight: {r: 0, g: 0, b: 0, a: 1}
+    - _SpecularTint1: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularTint2: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularTint3: {r: 1, g: 0.9398438, b: 0.7688679, a: 1}
+    - _SpecularTint4: {r: 1, g: 1, b: 1, a: 0}
+    - _SunColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SunTint: {r: 1, g: 0.97551376, b: 0.6933962, a: 1}
+    - _Tex_HDR: {r: 1, g: 1, b: 0, a: 0}
+    - _Tex_HDR1: {r: 0, g: 0, b: 0, a: 0}
+    - _Tex_HDR2: {r: 0, g: 0, b: 0, a: 0}
+    - _Tint: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+    - _TintColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Vector0: {r: 0.2, g: 0, b: 0.2, a: 0}
+    - _ZenithColorDay: {r: 0.033018887, g: 0.39945373, b: 1, a: 1}
+    - _ZenithColorNight: {r: 0.020825924, g: 0.16072953, b: 0.33962262, a: 1}
+    - _ZenithColorTwilight: {r: 0, g: 0.58571386, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
