@@ -1,34 +1,17 @@
 ﻿using Cinemachine;
-using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Oyuncunun hareket ve kamera kontrolunu yoneten sinif.
-/// 
-/// Sorumluluklar:
-/// - CharacterController ile yuru, ziplama, dusme hesaplari
-/// - Cinemachine TPS kamera kontrolu
-/// - Owner icin input'a gore hareket; diger client'lar icin sadece goruntu sync
-/// 
-/// Network Notlari:
-/// - Bu script NetworkBehaviour'dan turemis.
-/// - Owner olan client input okur ve kendi transform'unu hareket ettirir.
-/// - Diger client'lar icin sadece _netVisualRotationY uzerinden rotasyon sync edilir.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerLocomotion : NetworkBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float walkSpeed = 5f;
-    [SerializeField] private float sprintSpeed = 8f;
-    [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private float airControlMultiplier = 0.8f;
+    [SerializeField] private float walkSpeed = 4.5f;
+    [SerializeField] private float sprintSpeed = 6.5f;
 
-    [Header("Jump & Gravity")]
-    [SerializeField] private float jumpHeight = 1.5f;
-    [SerializeField] private float gravity = -9.81f;
-    [SerializeField] private float fallMultiplier = 2.5f;
+    [Header("Jump")]
+    [SerializeField] private float jumpHeight = 2.5f;
+    [SerializeField] private float gravity = 25f;
 
     [Header("Camera")]
     [SerializeField] private CinemachineVirtualCamera tpsCamera;
@@ -36,20 +19,10 @@ public class PlayerLocomotion : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 0.03f;
     [SerializeField] private float topClamp = 70f;
     [SerializeField] private float bottomClamp = -40f;
-    
-    [Header("Network Smoothing")]
-    [SerializeField] private float positionLerpSpeed = 15f;
-    [SerializeField] private float rotationLerpSpeed = 10f;
-
-    private Vector3 _networkPosition;
-    private Quaternion _networkRotation;
 
     public Transform CameraRoot => cameraRoot != null ? cameraRoot.transform : transform;
-
-    /// <summary> Su anki yuru/sprint hizini animator icin disariya acar. </summary>
     public float CurrentMoveSpeed { get; private set; }
 
-    // Yalnizca owner yazabilir, herkes okuyabilir → goruntu rotasyon sync
     private NetworkVariable<float> _netVisualRotationY = new(
         0f,
         NetworkVariableReadPermission.Everyone,
@@ -58,16 +31,21 @@ public class PlayerLocomotion : NetworkBehaviour
 
     private CharacterController _controller;
     private Transform _cameraTransform;
-    private Vector3 _velocity;
+    private Vector3 _moveVelocity;
+    private float _verticalVelocity;
     private float _cinemachineTargetPitch;
     private float _cinemachineTargetYaw;
-
     private PlayerReferences _refs;
 
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
         _refs = GetComponent<PlayerReferences>();
+
+        if (_controller != null)
+        {
+            _controller.enabled = false;
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -84,11 +62,7 @@ public class PlayerLocomotion : NetworkBehaviour
                 tpsCamera.LookAt = cameraRoot.transform;
             }
 
-            if (_controller != null)
-            {
-                _controller.enabled = false;
-                StartCoroutine(EnableControllerDelayed());
-            }
+            StartCoroutine(EnableControllerWhenReady());
         }
         else
         {
@@ -98,31 +72,59 @@ public class PlayerLocomotion : NetworkBehaviour
         }
     }
 
-    private IEnumerator EnableControllerDelayed()
+    private System.Collections.IEnumerator EnableControllerWhenReady()
     {
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(0.5f);
 
         if (_controller != null)
         {
             _controller.enabled = true;
-            Debug.Log($"[PlayerLocomotion] Controller enabled at: {transform.position}");
         }
+    }
+
+    public void ForceEnableController()
+    {
+        if (_controller != null)
+        {
+            _controller.enabled = true;
+        }
+    }
+
+    private void Update()
+    {
+        if (!IsOwner)
+        {
+            SyncVisualRotation();
+            return;
+        }
+
+        SyncVisualRotation();
+    }
+
+    private void LateUpdate()
+    {
+        if (!IsOwner) return;
+        UpdateCameraRotation();
     }
 
     public void ApplyGravity()
     {
         if (_controller == null || !_controller.enabled) return;
 
-        if (_controller.isGrounded && _velocity.y < 0f)
+        if (_controller.isGrounded)
         {
-            _velocity.y = -2f;
+            if (_verticalVelocity < 0f)
+            {
+                _verticalVelocity = -2f;
+            }
         }
         else
         {
-            float multiplier = _velocity.y < 0f ? fallMultiplier : 1f;
-            _velocity.y += gravity * multiplier * Time.deltaTime;
+            _verticalVelocity -= gravity * Time.deltaTime;
         }
-        _controller.Move(new Vector3(0f, _velocity.y, 0f) * Time.deltaTime);
+
+        Vector3 finalMove = _moveVelocity + Vector3.up * _verticalVelocity;
+        _controller.Move(finalMove * Time.deltaTime);
     }
 
     public void Move(Vector2 input, bool sprint, bool isAirborne = false)
@@ -137,120 +139,62 @@ public class PlayerLocomotion : NetworkBehaviour
                 return;
         }
 
-        if (input == Vector2.zero)
+        float targetSpeed = sprint ? sprintSpeed : walkSpeed;
+
+        if (input.magnitude < 0.01f)
         {
+            _moveVelocity = Vector3.zero;
             CurrentMoveSpeed = 0f;
             return;
         }
 
-        Vector3 camForward = _cameraTransform.forward;
-        Vector3 camRight = _cameraTransform.right;
-        camForward.y = 0f;
-        camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
+        Vector3 forward = _cameraTransform.forward;
+        Vector3 right = _cameraTransform.right;
+        forward.y = 0f;
+        right.y = 0f;
+        forward.Normalize();
+        right.Normalize();
 
-        Vector3 direction = (camForward * input.y + camRight * input.x).normalized;
+        Vector3 moveDirection = (forward * input.y + right * input.x).normalized;
 
-        if (direction != Vector3.zero)
+        _moveVelocity = moveDirection * targetSpeed * input.magnitude;
+        CurrentMoveSpeed = _moveVelocity.magnitude;
+
+        if (moveDirection != Vector3.zero)
         {
-            Quaternion targetRot = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRot,
-                rotationSpeed * Time.deltaTime
-            );
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 15f * Time.deltaTime);
             _netVisualRotationY.Value = transform.eulerAngles.y;
         }
-
-        float speed = sprint ? sprintSpeed : walkSpeed;
-        if (isAirborne) speed *= airControlMultiplier;
-
-        _controller.Move(direction * speed * Time.deltaTime);
-        CurrentMoveSpeed = input.magnitude * speed;
     }
 
-    private void Update()
-    {
-        if (!IsOwner)
-        {
-            // Diger oyunculari smooth interpolate et
-            SmoothNetworkTransform();
-            return;
-        }
-
-        // Owner icin mevcut kodlar...
-        SyncVisualRotation();
-    }
-
-    private void SmoothNetworkTransform()
-    {
-        // NetworkTransform'dan gelen pozisyonu smooth lerp
-        _networkPosition = transform.position;
-        _networkRotation = transform.rotation;
-
-        // Smooth hareket (jitter'i onler)
-        transform.position = Vector3.Lerp(
-            transform.position,
-            _networkPosition,
-            Time.deltaTime * positionLerpSpeed
-        );
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            _networkRotation,
-            Time.deltaTime * rotationLerpSpeed
-        );
-    }
-
-    private void LateUpdate()
-    {
-        if (!IsOwner) return;
-
-        UpdateCameraRotation();
-    }
-
-    /// <summary>
-    /// Ziplama baslangic kuvvetini uygular.
-    /// </summary>
     public void Jump()
     {
-        _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        if (_controller == null || !_controller.enabled) return;
+
+        if (_controller.isGrounded)
+        {
+            _verticalVelocity = Mathf.Sqrt(jumpHeight * 2f * gravity);
+            _refs.Input.ConsumeJump();
+        }
     }
 
-    /// <summary>
-    /// Ornegin blink gibi teleport isleminden sonra dikey hizi sifirlamak icin.
-    /// </summary>
     public void ResetVerticalVelocity()
     {
-        _velocity.y = 0f;
+        _verticalVelocity = 0f;
     }
 
-    /// <summary>
-    /// Yatay hareketi aninda durdurmak icin kullanilir.
-    /// Orn: MatchEnded durumunda animasyonu idle'a cekmek.
-    /// </summary>
     public void ForceStopMovement()
     {
-        CurrentMoveSpeed = 0f;
-
-        // Karakterin yatay hareketini durdurmak icin 0 vektor ile Move cagirabiliriz
-        // ya da hic move cagirmayiz, onemli olan animator'in Speed parametresinin sifirlanmasi.
-        // Su an sadece Speed'i sifirliyoruz; CharacterController hareketini Update'te zaten durduruyoruz.
+        _moveVelocity = Vector3.zero;
+        _verticalVelocity = 0f;
     }
 
-    // Query fonksiyonlari (state gecisleri icin)
+    public bool IsGrounded() => _controller != null && _controller.isGrounded;
+    public bool IsFalling() => _verticalVelocity < -0.1f && !IsGrounded();
+    public bool IsRising() => _verticalVelocity > 0.1f;
+    public float VerticalVelocity => _verticalVelocity;
 
-    public bool IsGrounded() => _controller.isGrounded;
-    public bool IsFalling() => _velocity.y < 0f && !_controller.isGrounded;
-    public bool IsRising() => _velocity.y > 0.1f;
-    public float VerticalVelocity => _velocity.y;
-
-    // ═════════════════════ Private Helpers ═════════════════════
-
-    /// <summary>
-    /// Owner icin kamera rotasyonunu mouse input'a gore gunceller.
-    /// </summary>
     private void UpdateCameraRotation()
     {
         if (_refs == null || _refs.Input == null) return;
@@ -266,23 +210,13 @@ public class PlayerLocomotion : NetworkBehaviour
         _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
         _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
 
-        cameraRoot.transform.rotation = Quaternion.Euler(
-            _cinemachineTargetPitch, _cinemachineTargetYaw, 0f
-        );
+        cameraRoot.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch, _cinemachineTargetYaw, 0f);
     }
 
-    /// <summary>
-    /// Owner olmayan client'lar icin, network'ten gelen rotasyon degerine
-    /// yavasca dogru yaklasarak goruntu yumsatilir.
-    /// </summary>
     private void SyncVisualRotation()
     {
         Quaternion target = Quaternion.Euler(0f, _netVisualRotationY.Value, 0f);
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            target,
-            rotationSpeed * Time.deltaTime
-        );
+        transform.rotation = Quaternion.Slerp(transform.rotation, target, 15f * Time.deltaTime);
     }
 
     private static float ClampAngle(float angle, float min, float max)

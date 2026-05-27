@@ -2,96 +2,97 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Network uzerinden senkronize edilen saglik sistemi.
-/// 
-/// Sorumluluklar:
-/// - Mevcut saglik degerini NetworkVariable ile saklamak
-/// - IDamageable arayuzunu implement etmek
-/// - Server tarafinda hasar uygulamak ve olum event'lerini tetiklemek
-/// 
-/// Eventler:
-/// - OnHealthChanged: Saglik her degistiginde (UI, efektler icin)
-/// - OnDeath: Saglik sifira dustugunde (ragdoll, despawn vs. icin)
-/// </summary>
 public class HealthComponent : NetworkBehaviour, IDamageable
 {
     [SerializeField] private float maxHealth = 100f;
 
-    /// <summary>
-    /// Network uzerinde herkesin okuyabildigi, yalnizca server'in yazabildigi saglik.
-    /// </summary>
     public NetworkVariable<float> currentHealth = new NetworkVariable<float>(
         100f,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
-    /// <summary> Mevcut saglik degeri (network senkronize). </summary>
+    private NetworkVariable<bool> _isDead = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     public float CurrentHealth => currentHealth.Value;
+    public bool IsDead => _isDead.Value;
 
-    /// <summary> Saglik sifir veya altina dustugunde true olur. </summary>
-    public bool IsDead => currentHealth.Value <= 0;
-
-    /// <summary> Saglik degistiginde (onceki, yeni) degerlerle tetiklenir. </summary>
     public event Action<float, float> OnHealthChanged;
-
-    /// <summary> Saglik sifira dustugunde bir kez tetiklenir. </summary>
     public event Action OnDeath;
 
     private float _damageReductionPercent = 0;
-    private bool _deathTriggered = false;
 
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
-            // Server uzerinde baslangic sagligini ayarlayalim
             currentHealth.Value = maxHealth;
+            _isDead.Value = false;
         }
 
-        // NetworkVariable degistiginde local handler'i cagir
         currentHealth.OnValueChanged += HandleHealthChanged;
+        _isDead.OnValueChanged += HandleDeathStateChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         currentHealth.OnValueChanged -= HandleHealthChanged;
+        _isDead.OnValueChanged -= HandleDeathStateChanged;
     }
 
-    /// <summary>
-    /// IDamageable implementasyonu.
-    /// Hasar sadece server tarafinda uygulanir.
-    /// </summary>
     public void TakeDamage(float amount, ulong dealerClientId)
     {
-        if (!IsServer || IsDead) return;
+        if (!IsServer || _isDead.Value) return;
 
         float finalDamage = amount * (1f - _damageReductionPercent);
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - finalDamage);
-    }
 
-    /// <summary>
-    /// Saglik NetworkVariable'i degistiginde cagrilir.
-    /// Buradan event'ler araciligiyla UI ve diger sistemler bilgilendirilir.
-    /// </summary>
-    private void HandleHealthChanged(float previousValue, float newValue)
-    {
-        OnHealthChanged?.Invoke(previousValue, newValue);
+        Debug.Log($"[HealthComponent] Client {OwnerClientId} took {finalDamage} damage. Health: {currentHealth.Value}");
 
-        if (newValue <= 0f && !_deathTriggered)
+        if (currentHealth.Value <= 0f && !_isDead.Value)
         {
-            _deathTriggered = true;
-            OnDeath?.Invoke();
+            _isDead.Value = true;
+            Debug.Log($"[HealthComponent] Client {OwnerClientId} died (server)");
         }
     }
 
-    /// <summary>
-    /// Alinan hasari azaltmak icin yuzde cinsinden damage reduction belirler.
-    /// Ornek: 0.3 => %30 daha az hasar.
-    /// </summary>
+    private void HandleHealthChanged(float previousValue, float newValue)
+    {
+        OnHealthChanged?.Invoke(previousValue, newValue);
+    }
+
+    private void HandleDeathStateChanged(bool wasAlive, bool isDead)
+    {
+        if (isDead)
+        {
+            Debug.Log($"[HealthComponent] Death state changed to dead for client {OwnerClientId}");
+            OnDeath?.Invoke();
+        }
+        else
+        {
+            Debug.Log($"[HealthComponent] Death state changed to alive for client {OwnerClientId}");
+        }
+    }
+
     public void SetDamageReduction(float percent)
     {
         _damageReductionPercent = percent;
+    }
+
+    public void ResetHealth()
+    {
+        if (!IsServer)
+        {
+            Debug.LogError("[HealthComponent] ResetHealth called on client!");
+            return;
+        }
+
+        Debug.Log($"[HealthComponent] Resetting health for client {OwnerClientId}");
+        currentHealth.Value = maxHealth;
+        _isDead.Value = false;
     }
 }

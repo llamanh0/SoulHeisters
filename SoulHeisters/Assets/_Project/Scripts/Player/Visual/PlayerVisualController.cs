@@ -2,18 +2,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 
-/// <summary>
-/// Oyuncunun gorsel tarafini (animator, IK, ragdoll gecisi) yonetir.
-/// 
-/// Sorumluluklar:
-/// - Animator parametrelerini Locomotion ve CharacterController'a gore guncellemek
-/// - Aim rig'ini (el IK, global aim) kontrol etmek
-/// - Olum aninda ragdoll'u devreye sokmak
-/// 
-/// Network Notlari:
-/// - Animasyon parametrelerini guncellemek icin owner olma zorunlulugu yok.
-/// - Fakat aim rig icin input gerektigi icin sadece owner tarafinda rig guncellenir.
-/// </summary>
 public class PlayerVisualController : NetworkBehaviour
 {
     [Header("Animator")]
@@ -32,31 +20,35 @@ public class PlayerVisualController : NetworkBehaviour
 
     [Header("Settings")]
     [SerializeField] private float aimSpeed = 15f;
-    
+
     [Header("Network Settings")]
-    [SerializeField] private float animatorUpdateRate = 0.1f; // Saniyede 10 kez
-    
+    [SerializeField] private float animatorUpdateRate = 0.1f;
+
     private float _lastAnimatorUpdate;
-
     private PlayerReferences _refs;
-
-    // Animator parametre ID cache
     private int _speedParamID;
     private int _isGroundedParamID;
     private int _verticalVelocityParamID;
 
+    private Vector3 _originalHandIkLocalPos;
+    private Quaternion _originalHandIkLocalRot;
+
     private void Awake()
     {
         _refs = GetComponentInParent<PlayerReferences>();
-
         _speedParamID = Animator.StringToHash("Speed");
         _isGroundedParamID = Animator.StringToHash("IsGrounded");
         _verticalVelocityParamID = Animator.StringToHash("VerticalVelocity");
+
+        if (handIkTarget != null)
+        {
+            _originalHandIkLocalPos = handIkTarget.localPosition;
+            _originalHandIkLocalRot = handIkTarget.localRotation;
+        }
     }
 
-     private void LateUpdate()
+    private void LateUpdate()
     {
-        // Owner her frame guncellesin
         if (IsOwner)
         {
             UpdateAnimator();
@@ -64,36 +56,27 @@ public class PlayerVisualController : NetworkBehaviour
         }
         else
         {
-            // Diger oyuncular icin rate-limited update
             if (Time.time - _lastAnimatorUpdate >= animatorUpdateRate)
             {
                 _lastAnimatorUpdate = Time.time;
                 UpdateAnimator();
             }
-            
-            UpdateRig(mainRig.weight > 0.5f); // Mevcut rig durumuna gore
+            UpdateRig(mainRig != null && mainRig.weight > 0.5f);
         }
     }
 
-    /// <summary>
-    /// Animator parametrelerini gunceller (speed, grounded, vertical velocity).
-    /// Oyun biterse Idle animasyonuna zorlar (speed ve Vertical Velocity degerini 0'a zorlar).
-    /// </summary>
     private void UpdateAnimator()
     {
         if (animator == null) return;
 
         bool isPlaying = GameStateManager.Instance == null ||
-                         GameStateManager.Instance.CurrentState == GameState.Playing;
+            GameStateManager.Instance.CurrentState == GameState.Playing;
 
         if (_refs.Locomotion != null)
         {
             float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
-            
-            // SMOOTH DAMPING - animede ani degisiklikleri onler
             float currentSpeed = animator.GetFloat(_speedParamID);
             float smoothSpeed = Mathf.Lerp(currentSpeed, speed, Time.deltaTime * 5f);
-            
             animator.SetFloat(_speedParamID, smoothSpeed);
         }
 
@@ -106,20 +89,16 @@ public class PlayerVisualController : NetworkBehaviour
         if (_refs.Locomotion != null)
         {
             float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
-            
-            // SMOOTH DAMPING
             float currentVel = animator.GetFloat(_verticalVelocityParamID);
             float smoothVel = Mathf.Lerp(currentVel, verticalVelocity, Time.deltaTime * 5f);
-            
             animator.SetFloat(_verticalVelocityParamID, smoothVel);
         }
     }
 
-    /// <summary>
-    /// Ana aim rig'inin agirligini ve hedef pozisyonlarini gunceller.
-    /// </summary>
     private void UpdateRig(bool isAiming)
     {
+        if (mainRig == null) return;
+
         float targetWeight = isAiming ? 1f : 0f;
         mainRig.weight = Mathf.Lerp(mainRig.weight, targetWeight, Time.deltaTime * 10f);
 
@@ -131,41 +110,93 @@ public class PlayerVisualController : NetworkBehaviour
             UpdateIdle();
     }
 
-    /// <summary>
-    /// Aim durumunda IK hedefini global aim noktasina dogru hareket ettirir.
-    /// </summary>
     private void UpdateAim()
     {
-        Vector3 targetPos = globalAimTarget.position;
+        if (globalAimTarget == null || handIkTarget == null) return;
 
-        handIkTarget.position =
-            Vector3.Lerp(handIkTarget.position, targetPos, Time.deltaTime * aimSpeed);
+        Vector3 targetPos = globalAimTarget.position;
+        handIkTarget.position = Vector3.Lerp(handIkTarget.position, targetPos, Time.deltaTime * aimSpeed);
 
         Vector3 lookDir = (targetPos - transform.position).normalized;
         handIkTarget.rotation = Quaternion.LookRotation(lookDir);
     }
 
-    /// <summary>
-    /// Aim yokken IK hedefinin rotasyonunu karakterle hizalar.
-    /// </summary>
     private void UpdateIdle()
     {
+        if (handIkTarget == null) return;
         handIkTarget.rotation = transform.rotation;
     }
 
-    /// <summary>
-    /// Olum aninda ragdoll'u devreye sokar ve ana kapsul collider'i kapatir.
-    /// Animator uzerinden "Die" trigger'ini da tetikler.
-    /// </summary>
     public void HandleDeathVisual()
     {
+        Debug.Log("[PlayerVisualController] HandleDeathVisual called");
+
         if (mainCapsuleCollider != null)
+        {
             mainCapsuleCollider.enabled = false;
+            Debug.Log("[PlayerVisualController] Main capsule collider disabled");
+        }
 
         if (ragdollController != null)
+        {
             ragdollController.EnableRagdoll();
+            Debug.Log("[PlayerVisualController] Ragdoll enabled");
+        }
 
         if (animator != null)
-            animator.SetTrigger("Die");
+        {
+            animator.enabled = false;
+            Debug.Log("[PlayerVisualController] Animator disabled");
+        }
+    }
+
+    public void ResetVisual()
+    {
+        Debug.Log("[PlayerVisualController] ResetVisual called");
+
+        if (ragdollController != null)
+        {
+            ragdollController.DisableRagdoll();
+            Debug.Log("[PlayerVisualController] Ragdoll disabled");
+        }
+
+        if (mainRig != null)
+        {
+            mainRig.weight = 0f;
+            Debug.Log("[PlayerVisualController] Rig weight reset");
+        }
+
+        if (handIkTarget != null)
+        {
+            handIkTarget.localPosition = _originalHandIkLocalPos;
+            handIkTarget.localRotation = _originalHandIkLocalRot;
+            Debug.Log("[PlayerVisualController] Hand IK reset to original");
+        }
+
+        if (animator != null)
+        {
+            animator.enabled = true;
+            animator.Rebind();
+            animator.Update(0f);
+            Debug.Log("[PlayerVisualController] Animator reset and rebind");
+        }
+
+        if (mainRig != null)
+        {
+            var rigBuilder = GetComponentInParent<RigBuilder>();
+            if (rigBuilder != null)
+            {
+                rigBuilder.Build();
+                Debug.Log("[PlayerVisualController] Rig rebuilt");
+            }
+        }
+
+        if (mainCapsuleCollider != null)
+        {
+            mainCapsuleCollider.enabled = true;
+            Debug.Log("[PlayerVisualController] Main capsule collider enabled");
+        }
+
+        Debug.Log("[PlayerVisualController] Visual reset complete");
     }
 }

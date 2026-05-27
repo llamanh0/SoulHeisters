@@ -1,72 +1,83 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// Animator ile fiziksel ragdoll arasinda gecis yapan kontrol sinifi.
-/// 
-/// Sorumluluklar:
-/// - Tum kemik rigidbody ve collider'larini bulmak
-/// - Normal durumda animator aktif, rigidbody'ler kinematic
-/// - Ragdoll durumunda animator kapali, rigidbody'ler fizik ile serbest
-/// </summary>
 public class RagdollController : MonoBehaviour
 {
     private Rigidbody[] _boneRigidbodies;
     private Collider[] _boneColliders;
     private Animator _animator;
+    private CharacterController _characterController;
 
     private void Awake()
     {
         _animator = GetComponent<Animator>();
+        _characterController = GetComponentInParent<CharacterController>();
 
         _boneRigidbodies = GetComponentsInChildren<Rigidbody>();
         _boneColliders = GetComponentsInChildren<Collider>();
 
+        Debug.Log($"[RagdollController] Found {_boneRigidbodies.Length} rigidbodies, {_boneColliders.Length} colliders");
         DisableRagdoll();
     }
 
-    /// <summary>
-    /// Ragdoll'u aktive eder: Animator'u kapatir, tum kemik rigidbody'leri
-    /// fiziksel olarak serbest birakir.
-    /// </summary>
     public void EnableRagdoll()
     {
+        Debug.Log("[RagdollController] Enabling ragdoll");
+
         if (_animator != null)
+        {
             _animator.enabled = false;
+        }
 
         foreach (var rb in _boneRigidbodies)
         {
+            if (rb == null) continue;
             rb.isKinematic = false;
             rb.useGravity = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
 
         foreach (var col in _boneColliders)
         {
+            if (col == null) continue;
+
+            if (col is CharacterController) continue;
+            if (col == _characterController) continue;
+
             col.enabled = true;
         }
+
+        Debug.Log("[RagdollController] Ragdoll enabled");
     }
 
-    /// <summary>
-    /// Ragdoll'u devre disi birakir: Animator'u acar, tum kemik rigidbody'leri
-    /// kinematic moda alir.
-    /// </summary>
     public void DisableRagdoll()
     {
-        if (_animator != null)
-            _animator.enabled = true;
+        Debug.Log("[RagdollController] Disabling ragdoll");
 
         foreach (var rb in _boneRigidbodies)
         {
+            if (rb == null) continue;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
             rb.isKinematic = true;
+            rb.useGravity = false;
         }
 
-        // Not:
-        // Burada collider'lari kapatmak istege bagli.
-        // Eger kemikler mermi carpmasi icin hitbox olarak kullanilacaksa
-        // collider'lari acik birakmak isteyebilirsin.
-        // su an kapatmiyoruz.
-        // foreach (var col in _boneColliders)
-        // {
-        //     col.enabled = false;
-        // }
+        foreach (var col in _boneColliders)
+        {
+            if (col == null) continue;
+
+            if (col is CharacterController) continue;
+            if (col == _characterController) continue;
+
+            col.enabled = false;
+        }
+
+        if (_animator != null)
+        {
+            _animator.enabled = true;
+        }
+
+        Debug.Log("[RagdollController] Ragdoll disabled");
     }
 }

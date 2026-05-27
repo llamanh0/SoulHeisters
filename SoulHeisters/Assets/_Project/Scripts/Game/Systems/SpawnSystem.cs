@@ -15,7 +15,9 @@ public class SpawnSystem : MonoBehaviour
 
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(spawnPoints[i].position, 0.5f);
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(spawnPoints[i].position + Vector3.up, $"Spawn {i}");
+#endif
         }
     }
 

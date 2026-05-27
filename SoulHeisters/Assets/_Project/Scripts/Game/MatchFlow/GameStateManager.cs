@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -13,7 +14,11 @@ public class GameStateManager : NetworkBehaviour
     private NetworkVariable<float> _networkMatchStartTime = new(
         0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    private NetworkVariable<int> _countdownTimer = new(
+        3, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     public GameState CurrentState => currentState.Value;
+    public int CountdownTimer => _countdownTimer.Value;
 
     public System.Action OnMatchStarted;
     public System.Action OnMatchEnded;
@@ -57,6 +62,45 @@ public class GameStateManager : NetworkBehaviour
             _gameStarted = true;
             StartCoroutine(GameLoop());
         }
+
+        currentState.OnValueChanged += HandleStateChanged;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        currentState.OnValueChanged -= HandleStateChanged;
+    }
+
+    private void HandleStateChanged(GameState oldState, GameState newState)
+    {
+        if (newState == GameState.Playing)
+        {
+            StartCoroutine(ForceEnableAllControllers());
+        }
+    }
+
+    private IEnumerator ForceEnableAllControllers()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        var allPlayers = FindObjectsOfType<PlayerReferences>();
+
+        foreach (var player in allPlayers)
+        {
+            if (player == null) continue;
+
+            var netObj = player.GetComponent<NetworkObject>();
+            if (netObj == null) continue;
+
+            var controller = player.GetComponent<CharacterController>();
+            if (controller != null && !controller.enabled)
+            {
+                controller.enabled = true;
+                Debug.Log($"[GameStateManager] Force enabled controller for client {netObj.OwnerClientId}");
+            }
+        }
+
+        Debug.Log("[GameStateManager] Controller check complete");
     }
 
     private IEnumerator GameLoop()
@@ -70,26 +114,64 @@ public class GameStateManager : NetworkBehaviour
     private IEnumerator WaitForPlayers()
     {
         currentState.Value = GameState.WaitingForPlayers;
-        Debug.Log("[GameStateManager] Waiting for players...");
+        Debug.Log("[GameStateManager] Waiting for all players to be ready...");
 
         yield return new WaitForSeconds(0.5f);
 
-        int attempts = 0;
-        while (NetworkManager.Singleton.ConnectedClients.Count < 1 && attempts < 50)
+        while (!AreAllPlayersReady())
         {
-            attempts++;
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.5f);
         }
 
-        Debug.Log($"[GameStateManager] {NetworkManager.Singleton.ConnectedClients.Count} players ready");
+        Debug.Log("[GameStateManager] All players ready!");
+    }
+
+    private bool AreAllPlayersReady()
+    {
+        if (NetworkManager.Singleton.ConnectedClients.Count == 0)
+            return false;
+
+        List<PlayerReadyState> playerStates = new List<PlayerReadyState>();
+
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            if (client.PlayerObject == null)
+            {
+                Debug.Log($"[GameStateManager] Client {client.ClientId} has no PlayerObject yet");
+                return false;
+            }
+
+            var readyState = client.PlayerObject.GetComponent<PlayerReadyState>();
+            if (readyState == null)
+            {
+                Debug.LogWarning($"[GameStateManager] Client {client.ClientId} has no PlayerReadyState");
+                return false;
+            }
+
+            if (!readyState.IsReady)
+            {
+                Debug.Log($"[GameStateManager] Client {client.ClientId} not ready yet");
+                return false;
+            }
+
+            playerStates.Add(readyState);
+        }
+
+        Debug.Log($"[GameStateManager] All {playerStates.Count} players are ready!");
+        return true;
     }
 
     private IEnumerator StartingPhase()
     {
         currentState.Value = GameState.Starting;
-        Debug.Log("[GameStateManager] Match starting...");
+        Debug.Log("[GameStateManager] Match starting countdown...");
 
-        yield return new WaitForSeconds(1f);
+        for (int i = 3; i > 0; i--)
+        {
+            _countdownTimer.Value = i;
+            Debug.Log($"[GameStateManager] Countdown: {i}");
+            yield return new WaitForSeconds(1f);
+        }
 
         Debug.Log("[GameStateManager] Match started!");
         OnMatchStarted?.Invoke();

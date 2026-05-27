@@ -1,8 +1,5 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// Oyuncu havadayken ve asagi dogru dusuyorken icinde bulundugu state.
-/// </summary>
 public class PlayerFallState : PlayerState
 {
     public PlayerFallState(PlayerStateMachine sm, PlayerReferences refs)
@@ -10,14 +7,11 @@ public class PlayerFallState : PlayerState
 
     public override void Tick()
     {
-        // Havada hareket (sinirli hava kontrolu)
         Vector2 input = refs.Input.MoveInput;
-        if (input != Vector2.zero)
-        {
-            refs.Locomotion.Move(input, false, isAirborne: true);
-        }
+        bool sprint = refs.Input.IsSprinting;
 
-        // Yere degdi → durumuna gore Idle veya Move'a don
+        refs.Locomotion.Move(input, sprint, isAirborne: true);
+
         if (refs.Locomotion.IsGrounded())
         {
             if (refs.Input.MoveInput != Vector2.zero)

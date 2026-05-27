@@ -106,11 +106,6 @@ public class PlayerHUD : NetworkBehaviour
             manaText.text = $"{Mathf.FloorToInt(currentMana)}";
     }
 
-    /// <summary>
-    /// GameStateManager'dan kalan mac suresini okuyup HUD'e yazar.
-    /// Sadece Playing durumunda sure geriye sayar, diger durumlarda
-    /// farkli metinler gosterebilir.
-    /// </summary>
     private void UpdateMatchTimerUI()
     {
         if (matchTimerText == null) return;
@@ -125,17 +120,15 @@ public class PlayerHUD : NetworkBehaviour
                 break;
 
             case GameState.Starting:
-                matchTimerText.text = "Match starting...";
+                int countdown = gsm.CountdownTimer;
+                matchTimerText.text = countdown > 0 ? $"Starting in {countdown}..." : "GO!";
                 break;
 
             case GameState.Playing:
-                // Burada kalan sureyi hesaplayacagiz
                 float remaining = GetRemainingMatchTime();
                 remaining = Mathf.Max(0f, remaining);
-
                 int minutes = Mathf.FloorToInt(remaining / 60f);
                 int seconds = Mathf.FloorToInt(remaining % 60f);
-
                 matchTimerText.text = $"{minutes:00}:{seconds:00}";
                 break;
 

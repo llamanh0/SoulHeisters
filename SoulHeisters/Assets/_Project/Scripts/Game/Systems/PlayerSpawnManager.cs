@@ -239,8 +239,17 @@ public class PlayerSpawnManager : NetworkBehaviour
         {
             player.transform.position = position;
             controller.enabled = true;
+            Debug.Log($"[PlayerSpawnManager] Controller enabled for client at {position}");
         }
 
-        Debug.Log($"[PlayerSpawnManager] Position set to: {player.transform.position}");
+        yield return new WaitForSeconds(0.2f);
+
+        if (controller != null && !controller.enabled)
+        {
+            controller.enabled = true;
+            Debug.LogWarning("[PlayerSpawnManager] Force re-enabled controller");
+        }
+
+        Debug.Log($"[PlayerSpawnManager] Position set complete. Controller enabled: {controller != null && controller.enabled}");
     }
 }
