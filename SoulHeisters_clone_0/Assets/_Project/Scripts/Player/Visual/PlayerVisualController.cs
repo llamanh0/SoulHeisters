@@ -75,9 +75,7 @@ public class PlayerVisualController : NetworkBehaviour
         if (_refs.Locomotion != null)
         {
             float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
-            float currentSpeed = animator.GetFloat(_speedParamID);
-            float smoothSpeed = Mathf.Lerp(currentSpeed, speed, Time.deltaTime * 5f);
-            animator.SetFloat(_speedParamID, smoothSpeed);
+            animator.SetFloat(_speedParamID, speed);
         }
 
         if (characterController != null)
@@ -89,9 +87,7 @@ public class PlayerVisualController : NetworkBehaviour
         if (_refs.Locomotion != null)
         {
             float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
-            float currentVel = animator.GetFloat(_verticalVelocityParamID);
-            float smoothVel = Mathf.Lerp(currentVel, verticalVelocity, Time.deltaTime * 5f);
-            animator.SetFloat(_verticalVelocityParamID, smoothVel);
+            animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
         }
     }
 
@@ -129,48 +125,38 @@ public class PlayerVisualController : NetworkBehaviour
 
     public void HandleDeathVisual()
     {
-        Debug.Log("[PlayerVisualController] HandleDeathVisual called");
-
         if (mainCapsuleCollider != null)
         {
             mainCapsuleCollider.enabled = false;
-            Debug.Log("[PlayerVisualController] Main capsule collider disabled");
         }
 
         if (ragdollController != null)
         {
             ragdollController.EnableRagdoll();
-            Debug.Log("[PlayerVisualController] Ragdoll enabled");
         }
 
         if (animator != null)
         {
             animator.enabled = false;
-            Debug.Log("[PlayerVisualController] Animator disabled");
         }
     }
 
     public void ResetVisual()
     {
-        Debug.Log("[PlayerVisualController] ResetVisual called");
-
         if (ragdollController != null)
         {
             ragdollController.DisableRagdoll();
-            Debug.Log("[PlayerVisualController] Ragdoll disabled");
         }
 
         if (mainRig != null)
         {
             mainRig.weight = 0f;
-            Debug.Log("[PlayerVisualController] Rig weight reset");
         }
 
         if (handIkTarget != null)
         {
             handIkTarget.localPosition = _originalHandIkLocalPos;
             handIkTarget.localRotation = _originalHandIkLocalRot;
-            Debug.Log("[PlayerVisualController] Hand IK reset to original");
         }
 
         if (animator != null)
@@ -178,7 +164,6 @@ public class PlayerVisualController : NetworkBehaviour
             animator.enabled = true;
             animator.Rebind();
             animator.Update(0f);
-            Debug.Log("[PlayerVisualController] Animator reset and rebind");
         }
 
         if (mainRig != null)
@@ -187,16 +172,12 @@ public class PlayerVisualController : NetworkBehaviour
             if (rigBuilder != null)
             {
                 rigBuilder.Build();
-                Debug.Log("[PlayerVisualController] Rig rebuilt");
             }
         }
 
         if (mainCapsuleCollider != null)
         {
             mainCapsuleCollider.enabled = true;
-            Debug.Log("[PlayerVisualController] Main capsule collider enabled");
         }
-
-        Debug.Log("[PlayerVisualController] Visual reset complete");
     }
 }
