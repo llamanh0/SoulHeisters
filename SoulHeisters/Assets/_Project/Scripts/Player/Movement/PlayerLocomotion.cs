@@ -1,19 +1,14 @@
-﻿using Cinemachine;
+﻿using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using Cinemachine;
 
-[RequireComponent(typeof(CharacterController))]
 public class PlayerLocomotion : NetworkBehaviour
 {
-    [Header("Movement")]
     [SerializeField] private float walkSpeed = 4.5f;
     [SerializeField] private float sprintSpeed = 6.5f;
-
-    [Header("Jump")]
     [SerializeField] private float jumpHeight = 2.5f;
     [SerializeField] private float gravity = 25f;
-
-    [Header("Camera")]
     [SerializeField] private CinemachineVirtualCamera tpsCamera;
     [SerializeField] private GameObject cameraRoot;
     [SerializeField] private float mouseSensitivity = 0.03f;
@@ -23,7 +18,7 @@ public class PlayerLocomotion : NetworkBehaviour
     public Transform CameraRoot => cameraRoot != null ? cameraRoot.transform : transform;
     public float CurrentMoveSpeed { get; private set; }
 
-    private NetworkVariable<float> _netVisualRotationY = new(
+    private NetworkVariable<float> _netRotY = new NetworkVariable<float>(
         0f,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner
@@ -43,16 +38,14 @@ public class PlayerLocomotion : NetworkBehaviour
         _refs = GetComponent<PlayerReferences>();
 
         if (_controller != null)
-        {
             _controller.enabled = false;
-        }
     }
 
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
         {
-            _cameraTransform = Camera.main != null ? Camera.main.transform : null;
+            _cameraTransform = Camera.main?.transform;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
@@ -66,45 +59,36 @@ public class PlayerLocomotion : NetworkBehaviour
         }
         else
         {
-            if (tpsCamera) tpsCamera.gameObject.SetActive(false);
+            if (tpsCamera != null)
+                tpsCamera.gameObject.SetActive(false);
+
             if (_controller != null)
                 _controller.enabled = false;
         }
     }
 
-    private System.Collections.IEnumerator EnableControllerWhenReady()
+    private IEnumerator EnableControllerWhenReady()
     {
         yield return new WaitForSeconds(0.5f);
 
-        if (_controller != null)
-        {
+        if (_refs?.ControllerManager != null)
+            _refs.ControllerManager.EnableController();
+        else if (_controller != null)
             _controller.enabled = true;
-        }
-    }
-
-    public void ForceEnableController()
-    {
-        if (_controller != null)
-        {
-            _controller.enabled = true;
-        }
     }
 
     private void Update()
     {
-        if (!IsOwner)
-        {
+        if (IsOwner)
             SyncVisualRotation();
-            return;
-        }
-
-        SyncVisualRotation();
+        else
+            SyncVisualRotation();
     }
 
     private void LateUpdate()
     {
-        if (!IsOwner) return;
-        UpdateCameraRotation();
+        if (IsOwner)
+            UpdateCameraRotation();
     }
 
     public void ApplyGravity()
@@ -114,17 +98,14 @@ public class PlayerLocomotion : NetworkBehaviour
         if (_controller.isGrounded)
         {
             if (_verticalVelocity < 0f)
-            {
                 _verticalVelocity = -2f;
-            }
         }
         else
         {
             _verticalVelocity -= gravity * Time.deltaTime;
         }
 
-        Vector3 finalMove = _moveVelocity + Vector3.up * _verticalVelocity;
-        _controller.Move(finalMove * Time.deltaTime);
+        _controller.Move((_moveVelocity + Vector3.up * _verticalVelocity) * Time.deltaTime);
     }
 
     public void Move(Vector2 input, bool sprint, bool isAirborne = false)
@@ -138,8 +119,6 @@ public class PlayerLocomotion : NetworkBehaviour
             else
                 return;
         }
-
-        float targetSpeed = sprint ? sprintSpeed : walkSpeed;
 
         if (input.magnitude < 0.01f)
         {
@@ -156,23 +135,23 @@ public class PlayerLocomotion : NetworkBehaviour
         right.Normalize();
 
         Vector3 moveDirection = (forward * input.y + right * input.x).normalized;
-
-        _moveVelocity = moveDirection * targetSpeed * input.magnitude;
+        _moveVelocity = moveDirection * (sprint ? sprintSpeed : walkSpeed) * input.magnitude;
         CurrentMoveSpeed = _moveVelocity.magnitude;
 
         if (moveDirection != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 15f * Time.deltaTime);
-            _netVisualRotationY.Value = transform.eulerAngles.y;
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                Quaternion.LookRotation(moveDirection),
+                15f * Time.deltaTime
+            );
+            _netRotY.Value = transform.eulerAngles.y;
         }
     }
 
     public void Jump()
     {
-        if (_controller == null || !_controller.enabled) return;
-
-        if (_controller.isGrounded)
+        if (_controller != null && _controller.enabled && _controller.isGrounded)
         {
             _verticalVelocity = Mathf.Sqrt(jumpHeight * 2f * gravity);
             _refs.Input.ConsumeJump();
@@ -190,14 +169,26 @@ public class PlayerLocomotion : NetworkBehaviour
         _verticalVelocity = 0f;
     }
 
-    public bool IsGrounded() => _controller != null && _controller.isGrounded;
-    public bool IsFalling() => _verticalVelocity < -0.1f && !IsGrounded();
-    public bool IsRising() => _verticalVelocity > 0.1f;
+    public bool IsGrounded()
+    {
+        return _controller != null && _controller.isGrounded;
+    }
+
+    public bool IsFalling()
+    {
+        return _verticalVelocity < -0.1f && !IsGrounded();
+    }
+
+    public bool IsRising()
+    {
+        return _verticalVelocity > 0.1f;
+    }
+
     public float VerticalVelocity => _verticalVelocity;
 
     private void UpdateCameraRotation()
     {
-        if (_refs == null || _refs.Input == null) return;
+        if (_refs?.Input == null) return;
 
         Vector2 look = _refs.Input.LookInput;
 
@@ -215,8 +206,11 @@ public class PlayerLocomotion : NetworkBehaviour
 
     private void SyncVisualRotation()
     {
-        Quaternion target = Quaternion.Euler(0f, _netVisualRotationY.Value, 0f);
-        transform.rotation = Quaternion.Slerp(transform.rotation, target, 15f * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            Quaternion.Euler(0f, _netRotY.Value, 0f),
+            15f * Time.deltaTime
+        );
     }
 
     private static float ClampAngle(float angle, float min, float max)
