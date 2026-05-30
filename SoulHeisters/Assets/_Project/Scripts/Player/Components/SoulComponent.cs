@@ -22,10 +22,9 @@ public class SoulComponent : NetworkBehaviour
         SoulCount.OnValueChanged -= HandleSoulChanged;
     }
 
-    private void HandleSoulChanged(int oldValue, int newValue)
+    private void HandleSoulChanged(int previousValue, int newValue)
     {
         OnSoulChanged?.Invoke(newValue);
-        Debug.Log($"[SoulComponent] Soul changed: {oldValue} → {newValue}");
     }
 
     [ServerRpc(RequireOwnership = false)]
