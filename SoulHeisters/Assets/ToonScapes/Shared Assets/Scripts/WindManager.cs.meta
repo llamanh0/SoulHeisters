@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 650d517be9220504a8d72b7fdf9831d1
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - noiseTexture: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Shared Assets/Scripts/WindManager.cs
+  uploadId: 864486

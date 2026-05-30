@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 911966ad5aeae49418d9fea9a789f0ad
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 36300000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Spring Isles/Demo/Demo_Scene_Day/OcclusionCullingData.asset
+  uploadId: 864486

@@ -2,18 +2,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 
-/// <summary>
-/// Oyuncunun gorsel tarafini (animator, IK, ragdoll gecisi) yonetir.
-/// 
-/// Sorumluluklar:
-/// - Animator parametrelerini Locomotion ve CharacterController'a gore guncellemek
-/// - Aim rig'ini (el IK, global aim) kontrol etmek
-/// - Olum aninda ragdoll'u devreye sokmak
-/// 
-/// Network Notlari:
-/// - Animasyon parametrelerini guncellemek icin owner olma zorunlulugu yok.
-/// - Fakat aim rig icin input gerektigi icin sadece owner tarafinda rig guncellenir.
-/// </summary>
 public class PlayerVisualController : NetworkBehaviour
 {
     [Header("Animator")]
@@ -32,94 +20,113 @@ public class PlayerVisualController : NetworkBehaviour
 
     [Header("Settings")]
     [SerializeField] private float aimSpeed = 15f;
-    
-    [Header("Network Settings")]
-    [SerializeField] private float animatorUpdateRate = 0.1f; // Saniyede 10 kez
-    
-    private float _lastAnimatorUpdate;
+
+    private NetworkVariable<float> _netSpeed = new NetworkVariable<float>(
+        0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
+
+    private NetworkVariable<float> _netVerticalVelocity = new NetworkVariable<float>(
+        0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
+
+    private NetworkVariable<bool> _netIsGrounded = new NetworkVariable<bool>(
+        true,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
 
     private PlayerReferences _refs;
-
-    // Animator parametre ID cache
     private int _speedParamID;
     private int _isGroundedParamID;
     private int _verticalVelocityParamID;
 
+    private Vector3 _originalHandIkLocalPos;
+    private Quaternion _originalHandIkLocalRot;
+
     private void Awake()
     {
         _refs = GetComponentInParent<PlayerReferences>();
-
         _speedParamID = Animator.StringToHash("Speed");
         _isGroundedParamID = Animator.StringToHash("IsGrounded");
         _verticalVelocityParamID = Animator.StringToHash("VerticalVelocity");
+
+        if (handIkTarget != null)
+        {
+            _originalHandIkLocalPos = handIkTarget.localPosition;
+            _originalHandIkLocalRot = handIkTarget.localRotation;
+        }
     }
 
-     private void LateUpdate()
+    private void Update()
     {
-        // Owner her frame guncellesin
         if (IsOwner)
         {
-            UpdateAnimator();
+            UpdateOwnerAnimator();
+        }
+        else
+        {
+            UpdateRemoteAnimator();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (IsOwner)
+        {
             UpdateRig(_refs.Input.AimInput || _refs.Input.FireInput);
         }
         else
         {
-            // Diger oyuncular icin rate-limited update
-            if (Time.time - _lastAnimatorUpdate >= animatorUpdateRate)
-            {
-                _lastAnimatorUpdate = Time.time;
-                UpdateAnimator();
-            }
-            
-            UpdateRig(mainRig.weight > 0.5f); // Mevcut rig durumuna gore
+            UpdateRig(mainRig != null && mainRig.weight > 0.5f);
         }
     }
 
-    /// <summary>
-    /// Animator parametrelerini gunceller (speed, grounded, vertical velocity).
-    /// Oyun biterse Idle animasyonuna zorlar (speed ve Vertical Velocity degerini 0'a zorlar).
-    /// </summary>
-    private void UpdateAnimator()
+    private void UpdateOwnerAnimator()
     {
         if (animator == null) return;
 
         bool isPlaying = GameStateManager.Instance == null ||
-                         GameStateManager.Instance.CurrentState == GameState.Playing;
+            GameStateManager.Instance.CurrentState == GameState.Playing;
 
         if (_refs.Locomotion != null)
         {
             float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
-            
-            // SMOOTH DAMPING - animede ani degisiklikleri onler
-            float currentSpeed = animator.GetFloat(_speedParamID);
-            float smoothSpeed = Mathf.Lerp(currentSpeed, speed, Time.deltaTime * 5f);
-            
-            animator.SetFloat(_speedParamID, smoothSpeed);
+            animator.SetFloat(_speedParamID, speed);
+            _netSpeed.Value = speed;
         }
 
         if (characterController != null)
         {
             bool grounded = characterController.isGrounded;
             animator.SetBool(_isGroundedParamID, grounded);
+            _netIsGrounded.Value = grounded;
         }
 
         if (_refs.Locomotion != null)
         {
             float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
-            
-            // SMOOTH DAMPING
-            float currentVel = animator.GetFloat(_verticalVelocityParamID);
-            float smoothVel = Mathf.Lerp(currentVel, verticalVelocity, Time.deltaTime * 5f);
-            
-            animator.SetFloat(_verticalVelocityParamID, smoothVel);
+            animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
+            _netVerticalVelocity.Value = verticalVelocity;
         }
     }
 
-    /// <summary>
-    /// Ana aim rig'inin agirligini ve hedef pozisyonlarini gunceller.
-    /// </summary>
+    private void UpdateRemoteAnimator()
+    {
+        if (animator == null) return;
+
+        animator.SetFloat(_speedParamID, _netSpeed.Value);
+        animator.SetBool(_isGroundedParamID, _netIsGrounded.Value);
+        animator.SetFloat(_verticalVelocityParamID, _netVerticalVelocity.Value);
+    }
+
     private void UpdateRig(bool isAiming)
     {
+        if (mainRig == null) return;
+
         float targetWeight = isAiming ? 1f : 0f;
         mainRig.weight = Mathf.Lerp(mainRig.weight, targetWeight, Time.deltaTime * 10f);
 
@@ -131,41 +138,78 @@ public class PlayerVisualController : NetworkBehaviour
             UpdateIdle();
     }
 
-    /// <summary>
-    /// Aim durumunda IK hedefini global aim noktasina dogru hareket ettirir.
-    /// </summary>
     private void UpdateAim()
     {
-        Vector3 targetPos = globalAimTarget.position;
+        if (globalAimTarget == null || handIkTarget == null) return;
 
-        handIkTarget.position =
-            Vector3.Lerp(handIkTarget.position, targetPos, Time.deltaTime * aimSpeed);
+        Vector3 targetPos = globalAimTarget.position;
+        handIkTarget.position = Vector3.Lerp(handIkTarget.position, targetPos, Time.deltaTime * aimSpeed);
 
         Vector3 lookDir = (targetPos - transform.position).normalized;
         handIkTarget.rotation = Quaternion.LookRotation(lookDir);
     }
 
-    /// <summary>
-    /// Aim yokken IK hedefinin rotasyonunu karakterle hizalar.
-    /// </summary>
     private void UpdateIdle()
     {
+        if (handIkTarget == null) return;
         handIkTarget.rotation = transform.rotation;
     }
 
-    /// <summary>
-    /// Olum aninda ragdoll'u devreye sokar ve ana kapsul collider'i kapatir.
-    /// Animator uzerinden "Die" trigger'ini da tetikler.
-    /// </summary>
     public void HandleDeathVisual()
     {
         if (mainCapsuleCollider != null)
+        {
             mainCapsuleCollider.enabled = false;
+        }
 
         if (ragdollController != null)
+        {
             ragdollController.EnableRagdoll();
+        }
 
         if (animator != null)
-            animator.SetTrigger("Die");
+        {
+            animator.enabled = false;
+        }
+    }
+
+    public void ResetVisual()
+    {
+        if (ragdollController != null)
+        {
+            ragdollController.DisableRagdoll();
+        }
+
+        if (mainRig != null)
+        {
+            mainRig.weight = 0f;
+        }
+
+        if (handIkTarget != null)
+        {
+            handIkTarget.localPosition = _originalHandIkLocalPos;
+            handIkTarget.localRotation = _originalHandIkLocalRot;
+        }
+
+        if (animator != null)
+        {
+            animator.enabled = true;
+            animator.Rebind();
+            animator.Update(0f);
+        }
+
+        if (mainRig != null)
+        {
+            var rigBuilder = GetComponentInParent<RigBuilder>();
+            if (rigBuilder != null)
+            {
+                rigBuilder.Build();
+            }
+        }
+
+        if (mainCapsuleCollider != null)
+        {
+            mainCapsuleCollider.enabled = true;
+        }
     }
 }

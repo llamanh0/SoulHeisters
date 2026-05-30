@@ -2,96 +2,81 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Network uzerinden senkronize edilen saglik sistemi.
-/// 
-/// Sorumluluklar:
-/// - Mevcut saglik degerini NetworkVariable ile saklamak
-/// - IDamageable arayuzunu implement etmek
-/// - Server tarafinda hasar uygulamak ve olum event'lerini tetiklemek
-/// 
-/// Eventler:
-/// - OnHealthChanged: Saglik her degistiginde (UI, efektler icin)
-/// - OnDeath: Saglik sifira dustugunde (ragdoll, despawn vs. icin)
-/// </summary>
 public class HealthComponent : NetworkBehaviour, IDamageable
 {
     [SerializeField] private float maxHealth = 100f;
 
-    /// <summary>
-    /// Network uzerinde herkesin okuyabildigi, yalnizca server'in yazabildigi saglik.
-    /// </summary>
     public NetworkVariable<float> currentHealth = new NetworkVariable<float>(
         100f,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
-    /// <summary> Mevcut saglik degeri (network senkronize). </summary>
+    private NetworkVariable<bool> _isDead = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     public float CurrentHealth => currentHealth.Value;
+    public bool IsDead => _isDead.Value;
 
-    /// <summary> Saglik sifir veya altina dustugunde true olur. </summary>
-    public bool IsDead => currentHealth.Value <= 0;
-
-    /// <summary> Saglik degistiginde (onceki, yeni) degerlerle tetiklenir. </summary>
     public event Action<float, float> OnHealthChanged;
-
-    /// <summary> Saglik sifira dustugunde bir kez tetiklenir. </summary>
     public event Action OnDeath;
 
-    private float _damageReductionPercent = 0;
-    private bool _deathTriggered = false;
+    private float _damageReductionPercent = 0f;
 
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
-            // Server uzerinde baslangic sagligini ayarlayalim
             currentHealth.Value = maxHealth;
+            _isDead.Value = false;
         }
 
-        // NetworkVariable degistiginde local handler'i cagir
         currentHealth.OnValueChanged += HandleHealthChanged;
+        _isDead.OnValueChanged += HandleDeathChanged;
     }
 
     public override void OnNetworkDespawn()
     {
         currentHealth.OnValueChanged -= HandleHealthChanged;
+        _isDead.OnValueChanged -= HandleDeathChanged;
     }
 
-    /// <summary>
-    /// IDamageable implementasyonu.
-    /// Hasar sadece server tarafinda uygulanir.
-    /// </summary>
-    public void TakeDamage(float amount, ulong dealerClientId)
-    {
-        if (!IsServer || IsDead) return;
-
-        float finalDamage = amount * (1f - _damageReductionPercent);
-        currentHealth.Value = Mathf.Max(0f, currentHealth.Value - finalDamage);
-    }
-
-    /// <summary>
-    /// Saglik NetworkVariable'i degistiginde cagrilir.
-    /// Buradan event'ler araciligiyla UI ve diger sistemler bilgilendirilir.
-    /// </summary>
     private void HandleHealthChanged(float previousValue, float newValue)
     {
         OnHealthChanged?.Invoke(previousValue, newValue);
+    }
 
-        if (newValue <= 0f && !_deathTriggered)
+    private void HandleDeathChanged(bool wasAlive, bool isDead)
+    {
+        if (isDead) OnDeath?.Invoke();
+    }
+
+    public void TakeDamage(float amount, ulong dealerClientId)
+    {
+        if (!IsServer || _isDead.Value) return;
+
+        float actualDamage = amount * (1f - _damageReductionPercent);
+        currentHealth.Value = Mathf.Max(0f, currentHealth.Value - actualDamage);
+
+        if (currentHealth.Value <= 0f && !_isDead.Value)
         {
-            _deathTriggered = true;
-            OnDeath?.Invoke();
+            _isDead.Value = true;
         }
     }
 
-    /// <summary>
-    /// Alinan hasari azaltmak icin yuzde cinsinden damage reduction belirler.
-    /// Ornek: 0.3 => %30 daha az hasar.
-    /// </summary>
     public void SetDamageReduction(float percent)
     {
-        _damageReductionPercent = percent;
+        _damageReductionPercent = Mathf.Clamp01(percent);
+    }
+
+    public void ResetHealth()
+    {
+        if (!IsServer) return;
+
+        currentHealth.Value = maxHealth;
+        _isDead.Value = false;
     }
 }

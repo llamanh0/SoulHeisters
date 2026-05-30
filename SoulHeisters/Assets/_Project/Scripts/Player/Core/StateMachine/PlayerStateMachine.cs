@@ -81,13 +81,17 @@ public class PlayerStateMachine : MonoBehaviour
 
         if (!refs.Locomotion.IsSpawned || !refs.Locomotion.IsOwner)
         {
-            // Debug:
-            // Debug.Log($"[PlayerSM] Skipping update. IsSpawned={refs.Locomotion.IsSpawned}, IsOwner={refs.Locomotion.IsOwner}");
             return;
         }
 
         if (GameStateManager.Instance != null &&
             GameStateManager.Instance.CurrentState != GameState.Playing)
+        {
+            return;
+        }
+
+        var controller = refs.Locomotion.GetComponent<CharacterController>();
+        if (controller != null && !controller.enabled)
         {
             return;
         }

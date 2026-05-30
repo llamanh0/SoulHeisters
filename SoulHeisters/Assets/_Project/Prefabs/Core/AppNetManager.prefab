@@ -44,5 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23da5c066b0709349ad107f6540cf0c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DebugCanvas: {fileID: 0}
-  gameSceneName: GameScene
+  lobbySceneName: LobbyScene
+  playerNameRegistryPrefab: {fileID: 7484290724766213734, guid: 2d7d4f16cbf92d048a092f433ac9ae8c,
+    type: 3}

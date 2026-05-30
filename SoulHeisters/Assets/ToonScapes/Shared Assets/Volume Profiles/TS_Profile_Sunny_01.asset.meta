@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b49367ce5efa86446b4af18b82544f96
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 361638
+  packageName: 'ToonScapes: Spring Isles'
+  packageVersion: 1.0.1
+  assetPath: Assets/ToonScapes/Shared Assets/Volume Profiles/TS_Profile_Sunny_01.asset
+  uploadId: 864486

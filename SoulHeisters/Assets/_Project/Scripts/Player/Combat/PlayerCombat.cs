@@ -3,19 +3,6 @@ using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
 
-/// <summary>
-/// Oyuncunun tum combat/spell atesleme islerini yonetir.
-/// 
-/// Sorumluluklar:
-/// - Input tarafindan tetiklenen spell cast isteklerini calistirmak
-/// - Spell'lere mana ve cooldown kontrolunu birakmak
-/// - ServerRpc ile server uzerinde gercek spell etkisini olusturmak
-/// - ClientRpc ile tum client'lara VFX oynatmak
-/// 
-/// Network Notlari:
-/// - Otorite her zaman owner player'dadir (input sadece owner tarafindan okunur).
-/// - Hasar ve mana tuketimi sadece server tarafinda yapilir.
-/// </summary>
 public class PlayerCombat : NetworkBehaviour
 {
     [SerializeField] private Transform firePoint;
@@ -30,6 +17,9 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Server Prefab")]
     [SerializeField] private GameObject boltServerPrefab;
 
+    [Header("Aim Settings")]
+    [SerializeField] private float maxAimDistance = 200f;
+
     private PlayerReferences _refs;
 
     private void Awake()
@@ -37,141 +27,129 @@ public class PlayerCombat : NetworkBehaviour
         _refs = GetComponent<PlayerReferences>();
     }
 
+    private void Start()
+    {
+        if (firePoint == null)
+        {
+            firePoint = _refs.Visual.transform.Find("Rig_System/Hand_IK_Target");
+
+            if (firePoint == null)
+            {
+                var tempGO = new GameObject("FirePoint");
+                tempGO.transform.SetParent(_refs.Visual.transform);
+                tempGO.transform.localPosition = new Vector3(0.3f, 1.5f, 0.5f);
+                firePoint = tempGO.transform;
+            }
+        }
+    }
+
     private void Update()
     {
-        // Yalnizca owner olan client, input okuyup spell cast istegi yapabilir
         if (!IsOwner) return;
 
-        // Oyun Playing durumunda degilse combat/spell kapali
         if (GameStateManager.Instance != null &&
             GameStateManager.Instance.CurrentState != GameState.Playing)
         {
             return;
         }
 
-        // Fire tusuna basili ise mevcut spell'i dene
         if (_refs.Input.FireInput)
         {
             var spell = _refs.SpellInventory.CurrentSpell;
             if (spell == null) return;
 
             var result = spell.TryCast();
-
-            // UI icin cast sonucunu bildir (yetersiz mana vs.)
             _refs.SpellInventory.HandleCastResult(result);
         }
     }
 
-    /// <summary>
-    /// Bolt spell'inin client tarafindaki giris noktasi.
-    /// Hedef noktayi hesaplar ve server'a gonderir.
-    /// </summary>
     public void ExecuteBolt()
     {
         var def = _refs.SpellInventory.FindSpellDefinition(SpellType.Bolt);
         if (def == null) return;
 
-        Vector3 targetPoint = GetCrosshairHitPoint();
+        Vector3 aimPoint = GetCrosshairAimPoint();
+        Vector3 direction = (aimPoint - firePoint.position).normalized;
 
         CastBoltServerRpc(
-            targetPoint,
+            firePoint.position,
+            direction,
             def.manaCost,
             def.damage,
             def.projectileSpeed);
     }
 
-    #region Server
-
-    /// <summary>
-    /// Bolt spell'inin server tarafinda gercek cast islemi.
-    /// - Mana kontrolu yapar
-    /// - Server'da mermi prefab'ini spawn eder
-    /// - Hasari belirler
-    /// - Tum client'lara VFX icin RPC gonderir
-    /// </summary>
-    [ServerRpc]
-    public void CastBoltServerRpc(Vector3 targetPoint, float manaCost, float damage, float projectileSpeed)
+    private Vector3 GetCrosshairAimPoint()
     {
-        // Sadece server mana tuketebilir
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            return firePoint.position + firePoint.forward * 100f;
+        }
+
+        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+
+        if (Physics.Raycast(ray, out RaycastHit hit, maxAimDistance))
+        {
+            return hit.point;
+        }
+
+        return ray.GetPoint(maxAimDistance);
+    }
+
+    [ServerRpc]
+    public void CastBoltServerRpc(Vector3 spawnPosition, Vector3 direction, float manaCost, float damage, float projectileSpeed)
+    {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
 
-        Vector3 direction = (targetPoint - firePoint.position).normalized;
         Quaternion rotation = Quaternion.LookRotation(direction);
+        GameObject serverObj = Instantiate(boltServerPrefab, spawnPosition, rotation);
 
-        // Server uzerinde fiziksel mermi objesini olustur
-        GameObject serverObj = Instantiate(boltServerPrefab, firePoint.position, rotation);
         var projectile = serverObj.GetComponent<ProjectileController>();
         projectile.Initialize(direction, projectileSpeed, damage, OwnerClientId);
 
         serverObj.GetComponent<NetworkObject>().Spawn();
 
-        // Tum client'lara sadece gorsel mermi spawn etmeleri icin bilgi gonder
-        CastBoltClientRpc(
-            firePoint.position,
-            rotation,
-            direction,
-            projectileSpeed);
+        CastBoltClientRpc(spawnPosition, direction, projectileSpeed);
     }
 
-    /// <summary>
-    /// Tum client'larda bolt spell'inin gorsel efektini olusturur.
-    /// Buradaki obje sadece VFX icin kullanilir, hasar server mermisinden gelir.
-    /// </summary>
     [ClientRpc]
-    private void CastBoltClientRpc(Vector3 pos, Quaternion rot, Vector3 dir, float projectileSpeed)
+    private void CastBoltClientRpc(Vector3 pos, Vector3 direction, float projectileSpeed)
     {
-        GameObject visualObj = Instantiate(boltVFX, pos, rot);
+        Quaternion rotation = Quaternion.LookRotation(direction);
+        GameObject visualObj = Instantiate(boltVFX, pos, rotation);
 
         if (visualObj.TryGetComponent<Rigidbody>(out var rb))
         {
-            rb.velocity = dir * projectileSpeed;
+            rb.linearVelocity = direction * projectileSpeed;
         }
 
         Destroy(visualObj, 5f);
     }
 
-    /// <summary>
-    /// Blink spell'inin server tarafinda calisan kismi.
-    /// - Mana kontrolu
-    /// - Onaylanan hedef konumu owner client'a bildirme
-    /// - Tum client'lara VFX gonderme
-    /// </summary>
     [ServerRpc]
     public void CastBlinkServerRpc(Vector3 targetPosition, float manaCost)
     {
         if (!_refs.Mana.TryConsume(manaCost))
             return;
 
-        // Sadece owner client blink pozisyonunu gercekten uygular
         ApproveBlinkClientRpc(targetPosition, OwnerClientId);
-
-        // Tum client'lara blink VFX gonder
         BlinkVFXClientRpc(targetPosition);
     }
 
-    /// <summary>
-    /// Sadece hedef owner client'ta, karakterin pozisyonunu
-    /// NetworkTransform.Teleport ile yeni noktaya tasir.
-    /// </summary>
     [ClientRpc]
     private void ApproveBlinkClientRpc(Vector3 targetPosition, ulong ownerId)
     {
-        // Bu RPC her client'ta calisir;
-        // fakat sadece ilgili owner karakterini hareket ettirmeliyiz
         if (NetworkManager.Singleton.LocalClientId != ownerId)
             return;
 
         var netTransform = GetComponent<NetworkTransform>();
         if (netTransform != null)
         {
-            netTransform.Teleport(
-                targetPosition,
-                transform.rotation,
-                transform.localScale);
+            netTransform.Teleport(targetPosition, transform.rotation, transform.localScale);
         }
 
-        // CharacterController'i resetleyerek fiziksel takilmalarin onune gec
         var controller = GetComponent<CharacterController>();
         if (controller != null)
         {
@@ -188,11 +166,6 @@ public class PlayerCombat : NetworkBehaviour
         Instantiate(blinkVFX, position, Quaternion.identity);
     }
 
-    /// <summary>
-    /// ArcBurst spell'inin server tarafinda calisan AoE hasar islemi.
-    /// - Mana kontrolu
-    /// - Sphere overlap ile cevredeki IDamageable objelere hasar
-    /// </summary>
     [ServerRpc]
     public void CastArcBurstServerRpc(float radius, float damage, float manaCost)
     {
@@ -200,20 +173,14 @@ public class PlayerCombat : NetworkBehaviour
             return;
 
         Collider[] hits = Physics.OverlapSphere(transform.position, radius);
-
         foreach (var hit in hits)
         {
-            // IDamageable'i parent zincirinde ara
             var damageable = hit.GetComponentInParent<IDamageable>();
             if (damageable == null)
                 continue;
 
-            // KENDI sagligimizi atla (self-hit'i kesin engelle)
             if (ReferenceEquals(damageable, _refs.Health))
                 continue;
-
-            // Istersen burada da sadece Player'lar icin ek kontrol yapabilirsin,
-            // ama gerek yok, yukaridaki kontrol yeterli.
 
             damageable.TakeDamage(damage, OwnerClientId);
         }
@@ -224,16 +191,9 @@ public class PlayerCombat : NetworkBehaviour
     [ClientRpc]
     private void ArcBurstVFXClientRpc()
     {
-        // VFX'i karakterin altina dogru biraz offset vererek spawn et
         Instantiate(arcBurstVFX, transform.position - new Vector3(0f, 7f, 0f), Quaternion.identity);
     }
 
-    /// <summary>
-    /// SoulGuard spell'inin server tarafinda calisan kismi.
-    /// - Mana kontrolu
-    /// - Belirli sure boyunca damage reduction uygular
-    /// - Tum client'lara VFX bildirir
-    /// </summary>
     [ServerRpc]
     public void CastSoulGuardServerRpc(float duration, float damageReduction, float manaCost)
     {
@@ -250,14 +210,6 @@ public class PlayerCombat : NetworkBehaviour
         StartCoroutine(nameof(WaitForSoulGuardDuration), duration);
     }
 
-    #endregion
-
-    #region IEnumerator
-
-    /// <summary>
-    /// SoulGuard VFX'ini belirli bir sure aktif tutar.
-    /// Bu coroutine tum client'larda calisir.
-    /// </summary>
     private IEnumerator WaitForSoulGuardDuration(float duration)
     {
         soulGuardVFX.SetActive(true);
@@ -265,39 +217,10 @@ public class PlayerCombat : NetworkBehaviour
         soulGuardVFX.SetActive(false);
     }
 
-    /// <summary>
-    /// Server tarafinda damage reduction yuzdesini belirli sure uygular.
-    /// </summary>
     private IEnumerator ApplyDamageReduction(float duration, float reduction)
     {
         _refs.Health.SetDamageReduction(reduction);
-
         yield return new WaitForSeconds(duration);
-
         _refs.Health.SetDamageReduction(0f);
     }
-
-    #endregion
-
-    #region Helper
-
-    /// <summary>
-    /// Ekranin ortasindan bir ray atarak hedef noktayi hesaplar.
-    /// Eger bir seye carpmazsa, sabit bir mesafede nokta kullanilir.
-    /// </summary>
-    private Vector3 GetCrosshairHitPoint()
-    {
-        Camera cam = Camera.main;
-        if (cam == null)
-        {
-            return transform.position + transform.forward * 100f;
-        }
-
-        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
-            return hit.point;
-        return ray.GetPoint(100f);
-    }
-
-    #endregion
 }
