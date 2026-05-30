@@ -118,8 +118,8 @@ public class LobbyManager : NetworkBehaviour
             _playersInLobby.OnListChanged -= HandleLobbyListChanged;
         }
     }
-    
-    
+
+
 
     #endregion
 
@@ -131,15 +131,10 @@ public class LobbyManager : NetworkBehaviour
 
         Debug.Log($"[LobbyManager] Client connected: {clientId}");
 
-        // Varsayilan isim
         string playerName = $"Player{clientId}";
-
         PlayerLobbyData newPlayer = new PlayerLobbyData(clientId, playerName, false);
         _playersInLobby.Add(newPlayer);
 
-        Debug.Log($"[LobbyManager] Added player to lobby: {playerName} (Total: {_playersInLobby.Count})");
-
-        // Lobi kodunu cliente gonder
         SendLobbyCodeClientRpc(_lobbyCode, clientId);
     }
 
@@ -302,7 +297,11 @@ public class LobbyManager : NetworkBehaviour
                 data.playerName = newName;
                 _playersInLobby[i] = data;
 
-                Debug.Log($"[LobbyManager] Player name updated to: {newName}");
+                if (PlayerNameRegistry.Instance != null)
+                {
+                    PlayerNameRegistry.Instance.RegisterPlayerNameServerRpc(clientId, newName);
+                }
+
                 break;
             }
         }

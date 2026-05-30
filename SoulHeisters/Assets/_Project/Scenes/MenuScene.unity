@@ -6832,7 +6832,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.000061035156, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &829838321
@@ -14336,6 +14336,12 @@ PrefabInstance:
       propertyPath: DebugCanvas
       value: 
       objectReference: {fileID: 1428613880}
+    - target: {fileID: 2927123286777947130, guid: 8dacf917ceac8624d935244eeaf3fa7f,
+        type: 3}
+      propertyPath: playerNameRegistryPrefab
+      value: 
+      objectReference: {fileID: 7484290724766213734, guid: 2d7d4f16cbf92d048a092f433ac9ae8c,
+        type: 3}
     - target: {fileID: 3417046048938802420, guid: 8dacf917ceac8624d935244eeaf3fa7f,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -14408,6 +14414,7 @@ SceneRoots:
   - {fileID: 546556238}
   - {fileID: 535508964}
   - {fileID: 4489390068071387813}
+  - {fileID: 1912437609}
   - {fileID: 196908981}
   - {fileID: 837173988}
   - {fileID: 1428613884}
@@ -14416,4 +14423,3 @@ SceneRoots:
   - {fileID: 914352655}
   - {fileID: 59239540}
   - {fileID: 639862299}
-  - {fileID: 1912437609}

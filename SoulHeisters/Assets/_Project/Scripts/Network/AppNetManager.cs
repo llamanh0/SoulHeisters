@@ -8,16 +8,14 @@ public class AppNetManager : MonoBehaviour
     [Header("Scenes")]
     [SerializeField] private string lobbySceneName = "LobbyScene";
 
-    [Header("Connection")]
-    [SerializeField] private float connectionTimeout = 10f;
+    [Header("Network Prefabs")]
+    [SerializeField] private GameObject playerNameRegistryPrefab;
 
     public static AppNetManager Instance { get; private set; }
 
     public event Action OnRelayReady;
     public event Action<string> OnRelayError;
     public bool IsReady { get; private set; }
-
-    private Coroutine _timeoutCoroutine;
 
     private void Awake()
     {
@@ -43,9 +41,6 @@ public class AppNetManager : MonoBehaviour
     {
         if (NetworkManager.Singleton != null)
             CleanupNetworkCallbacks();
-
-        if (_timeoutCoroutine != null)
-            StopCoroutine(_timeoutCoroutine);
     }
 
     private void SetupNetworkCallbacks()
@@ -71,8 +66,6 @@ public class AppNetManager : MonoBehaviour
         Debug.Log("[AppNetManager] Starting Host...");
         IsReady = false;
 
-        _timeoutCoroutine = StartCoroutine(ConnectionTimeoutRoutine("Host creation"));
-
         try
         {
             await RelayManager.Instance.InitializeAsync();
@@ -82,14 +75,9 @@ public class AppNetManager : MonoBehaviour
             {
                 Debug.Log("[AppNetManager] Host started successfully");
                 IsReady = true;
-
-                if (_timeoutCoroutine != null)
-                {
-                    StopCoroutine(_timeoutCoroutine);
-                    _timeoutCoroutine = null;
-                }
-
                 OnRelayReady?.Invoke();
+
+                SpawnPlayerNameRegistry();
 
                 if (!string.IsNullOrEmpty(lobbySceneName))
                 {
@@ -106,14 +94,38 @@ public class AppNetManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[AppNetManager] StartHost failed: {e.Message}");
-
-            if (_timeoutCoroutine != null)
-            {
-                StopCoroutine(_timeoutCoroutine);
-                _timeoutCoroutine = null;
-            }
-
             OnRelayError?.Invoke(e.Message);
+        }
+    }
+
+    private void SpawnPlayerNameRegistry()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        if (PlayerNameRegistry.Instance != null)
+        {
+            Debug.Log("[AppNetManager] PlayerNameRegistry already exists");
+            return;
+        }
+
+        if (playerNameRegistryPrefab == null)
+        {
+            Debug.LogError("[AppNetManager] PlayerNameRegistry prefab is null!");
+            return;
+        }
+
+        GameObject instance = Instantiate(playerNameRegistryPrefab);
+        var netObj = instance.GetComponent<NetworkObject>();
+
+        if (netObj != null)
+        {
+            netObj.Spawn();
+            Debug.Log("[AppNetManager] PlayerNameRegistry spawned");
+        }
+        else
+        {
+            Debug.LogError("[AppNetManager] No NetworkObject on PlayerNameRegistry prefab!");
+            Destroy(instance);
         }
     }
 
@@ -121,8 +133,6 @@ public class AppNetManager : MonoBehaviour
     {
         Debug.Log($"[AppNetManager] Starting Client with code: {joinCode}");
         IsReady = false;
-
-        _timeoutCoroutine = StartCoroutine(ConnectionTimeoutRoutine("Connection"));
 
         try
         {
@@ -133,13 +143,6 @@ public class AppNetManager : MonoBehaviour
             {
                 Debug.Log("[AppNetManager] Client started successfully");
                 IsReady = true;
-
-                if (_timeoutCoroutine != null)
-                {
-                    StopCoroutine(_timeoutCoroutine);
-                    _timeoutCoroutine = null;
-                }
-
                 OnRelayReady?.Invoke();
             }
             else
@@ -150,31 +153,12 @@ public class AppNetManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"[AppNetManager] StartClient failed: {e.Message}");
-
-            if (_timeoutCoroutine != null)
-            {
-                StopCoroutine(_timeoutCoroutine);
-                _timeoutCoroutine = null;
-            }
-
             OnRelayError?.Invoke(e.Message);
         }
     }
 
-    private IEnumerator ConnectionTimeoutRoutine(string operation)
-    {
-        yield return new WaitForSeconds(connectionTimeout);
-
-        Debug.LogWarning($"[AppNetManager] {operation} timeout");
-        OnRelayError?.Invoke($"{operation} timed out");
-
-        if (NetworkManager.Singleton != null)
-            NetworkManager.Singleton.Shutdown();
-    }
-
     public void StartServer()
     {
-        Debug.Log("[AppNetManager] Starting Server...");
         NetworkManager.Singleton.StartServer();
     }
 
@@ -185,11 +169,9 @@ public class AppNetManager : MonoBehaviour
             case SceneEventType.Load:
                 Debug.Log($"[AppNetManager] Scene loading: {sceneEvent.SceneName}");
                 break;
-
             case SceneEventType.LoadComplete:
                 Debug.Log($"[AppNetManager] Scene loaded: {sceneEvent.SceneName}");
                 break;
-
             case SceneEventType.UnloadComplete:
                 Debug.Log($"[AppNetManager] Scene unloaded: {sceneEvent.SceneName}");
                 break;

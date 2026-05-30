@@ -21,10 +21,24 @@ public class PlayerVisualController : NetworkBehaviour
     [Header("Settings")]
     [SerializeField] private float aimSpeed = 15f;
 
-    [Header("Network Settings")]
-    [SerializeField] private float animatorUpdateRate = 0.1f;
+    private NetworkVariable<float> _netSpeed = new NetworkVariable<float>(
+        0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
 
-    private float _lastAnimatorUpdate;
+    private NetworkVariable<float> _netVerticalVelocity = new NetworkVariable<float>(
+        0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
+
+    private NetworkVariable<bool> _netIsGrounded = new NetworkVariable<bool>(
+        true,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner
+    );
+
     private PlayerReferences _refs;
     private int _speedParamID;
     private int _isGroundedParamID;
@@ -47,25 +61,31 @@ public class PlayerVisualController : NetworkBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (IsOwner)
+        {
+            UpdateOwnerAnimator();
+        }
+        else
+        {
+            UpdateRemoteAnimator();
+        }
+    }
+
     private void LateUpdate()
     {
         if (IsOwner)
         {
-            UpdateAnimator();
             UpdateRig(_refs.Input.AimInput || _refs.Input.FireInput);
         }
         else
         {
-            if (Time.time - _lastAnimatorUpdate >= animatorUpdateRate)
-            {
-                _lastAnimatorUpdate = Time.time;
-                UpdateAnimator();
-            }
             UpdateRig(mainRig != null && mainRig.weight > 0.5f);
         }
     }
 
-    private void UpdateAnimator()
+    private void UpdateOwnerAnimator()
     {
         if (animator == null) return;
 
@@ -76,19 +96,31 @@ public class PlayerVisualController : NetworkBehaviour
         {
             float speed = isPlaying ? _refs.Locomotion.CurrentMoveSpeed : 0f;
             animator.SetFloat(_speedParamID, speed);
+            _netSpeed.Value = speed;
         }
 
         if (characterController != null)
         {
             bool grounded = characterController.isGrounded;
             animator.SetBool(_isGroundedParamID, grounded);
+            _netIsGrounded.Value = grounded;
         }
 
         if (_refs.Locomotion != null)
         {
             float verticalVelocity = isPlaying ? _refs.Locomotion.VerticalVelocity : 0f;
             animator.SetFloat(_verticalVelocityParamID, verticalVelocity);
+            _netVerticalVelocity.Value = verticalVelocity;
         }
+    }
+
+    private void UpdateRemoteAnimator()
+    {
+        if (animator == null) return;
+
+        animator.SetFloat(_speedParamID, _netSpeed.Value);
+        animator.SetBool(_isGroundedParamID, _netIsGrounded.Value);
+        animator.SetFloat(_verticalVelocityParamID, _netVerticalVelocity.Value);
     }
 
     private void UpdateRig(bool isAiming)

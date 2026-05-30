@@ -10,6 +10,7 @@ public class PlayerInputHandler : MonoBehaviour
     public bool IsJumping { get; private set; }
     public bool IsSprinting { get; private set; }
     public bool ChangeCameraInput { get; private set; }
+    public bool ScoreboardInput { get; private set; }  // YENİ
 
     private PlayerInputActions _inputActions;
     private bool _scrollJumpQueued = false;
@@ -47,6 +48,10 @@ public class PlayerInputHandler : MonoBehaviour
 
             _inputActions.Player.ChangeCamera.performed += i => ChangeCameraInput = true;
             _inputActions.Player.ChangeCamera.canceled += i => ChangeCameraInput = false;
+
+            // YENİ - SCOREBOARD
+            _inputActions.Player.Scoreboard.performed += i => ScoreboardInput = true;
+            _inputActions.Player.Scoreboard.canceled += i => ScoreboardInput = false;
         }
 
         _inputActions.Enable();

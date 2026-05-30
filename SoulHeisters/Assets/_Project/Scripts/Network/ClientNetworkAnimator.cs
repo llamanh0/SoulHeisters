@@ -16,25 +16,18 @@ public class ClientNetworkAnimator : NetworkAnimator
 
     protected override bool OnIsServerAuthoritative()
     {
-        return false; // Client kontrol eder
+        return false;
     }
 
+    /*
     private void Update()
     {
-        // Sadece owner client parametreleri guncellesin
         if (!IsOwner) return;
 
-        // Belirli araliklarla sync et (her frame degil)
         if (Time.time - _lastSyncTime >= syncInterval)
         {
             _lastSyncTime = Time.time;
-            SyncAnimatorParameters();
         }
     }
-
-    private void SyncAnimatorParameters()
-    {
-        // Animator parametrelerini manuel sync et
-        // Bunu NetworkAnimator otomatik yapar ama rate limit gerekebilir
-    }
+    */
 }
