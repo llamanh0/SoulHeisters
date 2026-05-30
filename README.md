@@ -23,7 +23,7 @@ Bu proje, doğrudan tamamlanmış bir ticari oyun üretmekten çok, çok oyuncul
 
 Projede kullanılan temel teknoloji ve araçlar aşağıda verilmiştir:
 
-- **Unity 2022.3 LTS**
+- **Unity 6000.3.16f1 LTS**
 - **C#**
 - **Unity Netcode for GameObjects (NGO)**
 - **Unity Transport**
@@ -81,7 +81,7 @@ Teslim edilen Unity proje yapısında temel olarak aşağıdaki klasörler bulun
 ### Unity Editor ile Çalıştırma
 
 1. Unity Hub üzerinden projeyi açınız.
-2. Projenin **Unity 2022.3 LTS** sürümü ile açılması önerilmektedir.
+2. Projenin **Unity 6000.3.16f1 LTS** sürümü ile açılması önerilmektedir.
 3. Paketler yüklendikten sonra başlangıç sahnesini açınız.
 4. Unity Editor üzerinden **Play** modunda projeyi çalıştırınız.
 
