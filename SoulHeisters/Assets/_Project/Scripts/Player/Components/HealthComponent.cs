@@ -5,18 +5,8 @@ using UnityEngine;
 public class HealthComponent : NetworkBehaviour, IDamageable
 {
     [SerializeField] private float maxHealth = 100f;
-
-    public NetworkVariable<float> currentHealth = new NetworkVariable<float>(
-        100f,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
-
-    private NetworkVariable<bool> _isDead = new NetworkVariable<bool>(
-        false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    public NetworkVariable<float> currentHealth = new(100f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<bool> _isDead = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public float CurrentHealth => currentHealth.Value;
     public bool IsDead => _isDead.Value;
@@ -44,22 +34,28 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         _isDead.OnValueChanged -= HandleDeathChanged;
     }
 
-    private void HandleHealthChanged(float previousValue, float newValue)
+    private void HandleHealthChanged(float p, float n)
     {
-        OnHealthChanged?.Invoke(previousValue, newValue);
+        OnHealthChanged?.Invoke(p, n);
     }
 
-    private void HandleDeathChanged(bool wasAlive, bool isDead)
+    private void HandleDeathChanged(bool w, bool d)
     {
-        if (isDead) OnDeath?.Invoke();
+        if (d)
+        {
+            Debug.Log($"{gameObject.name} died!");
+            OnDeath?.Invoke();
+        }
     }
 
-    public void TakeDamage(float amount, ulong dealerClientId)
+    public void TakeDamage(float amt, ulong dealerId)
     {
         if (!IsServer || _isDead.Value) return;
 
-        float actualDamage = amount * (1f - _damageReductionPercent);
+        float actualDamage = amt * (1f - _damageReductionPercent);
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - actualDamage);
+
+        Debug.Log($"{gameObject.name} took {actualDamage} damage, health: {currentHealth.Value}");
 
         if (currentHealth.Value <= 0f && !_isDead.Value)
         {
@@ -67,16 +63,17 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         }
     }
 
-    public void SetDamageReduction(float percent)
+    public void SetDamageReduction(float p)
     {
-        _damageReductionPercent = Mathf.Clamp01(percent);
+        _damageReductionPercent = Mathf.Clamp01(p);
     }
 
     public void ResetHealth()
     {
-        if (!IsServer) return;
-
-        currentHealth.Value = maxHealth;
-        _isDead.Value = false;
+        if (IsServer)
+        {
+            currentHealth.Value = maxHealth;
+            _isDead.Value = false;
+        }
     }
 }

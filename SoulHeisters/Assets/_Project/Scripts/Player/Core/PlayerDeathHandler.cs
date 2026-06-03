@@ -1,18 +1,13 @@
-﻿using Cinemachine;
-using System.Collections;
-using Unity.Netcode;
+﻿using Unity.Netcode;
 using UnityEngine;
+using Cinemachine;
+using System.Collections;
 
 public class PlayerDeathHandler : NetworkBehaviour
 {
-    [Header("Camera Settings")]
     [SerializeField] private CinemachineVirtualCamera deathCamera;
     [SerializeField] private CinemachineVirtualCamera normalCamera;
-
-    [Header("Scripts to Disable")]
     [SerializeField] private MonoBehaviour[] scriptsToDisable;
-
-    [Header("Respawn Settings")]
     [SerializeField] private float respawnDelay = 15f;
 
     private PlayerReferences _refs;
@@ -26,105 +21,70 @@ public class PlayerDeathHandler : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (_refs.Health != null)
-        {
             _refs.Health.OnDeath += HandleDeath;
-        }
 
         if (IsOwner)
         {
-            if (deathCamera != null)
+            if (deathCamera)
             {
                 deathCamera.gameObject.SetActive(true);
                 deathCamera.Priority = 5;
             }
-
-            if (normalCamera != null)
-            {
+            if (normalCamera)
                 normalCamera.Priority = 10;
-            }
         }
-        else
+        else if (deathCamera)
         {
-            if (deathCamera != null)
-                deathCamera.gameObject.SetActive(false);
+            deathCamera.gameObject.SetActive(false);
         }
     }
 
     public override void OnNetworkDespawn()
     {
         if (_refs.Health != null)
-        {
             _refs.Health.OnDeath -= HandleDeath;
-        }
 
         if (_respawnCoroutine != null)
-        {
             StopCoroutine(_respawnCoroutine);
-        }
     }
 
     private void HandleDeath()
     {
-        if (_refs.Health == null || !_refs.Health.IsDead)
-        {
-            Debug.LogWarning($"[PlayerDeathHandler] HandleDeath called but player not dead!");
-            return;
-        }
+        if (_refs.Health == null || !_refs.Health.IsDead) return;
 
-        Debug.Log($"[PlayerDeathHandler] Player {OwnerClientId} died");
-
-        var controller = GetComponent<CharacterController>();
-        if (controller != null)
-        {
-            controller.enabled = false;
-            Debug.Log("[PlayerDeathHandler] CharacterController disabled");
-        }
+        var c = GetComponent<CharacterController>();
+        if (c != null)
+            c.enabled = false;
 
         _refs.Visual.HandleDeathVisual();
 
-        foreach (var script in scriptsToDisable)
-        {
-            if (script != null)
-                script.enabled = false;
-        }
+        foreach (var s in scriptsToDisable)
+            if (s != null)
+                s.enabled = false;
 
         if (IsOwner)
         {
-            if (deathCamera != null)
-            {
+            if (deathCamera)
                 deathCamera.Priority = 20;
-                Debug.Log("[PlayerDeathHandler] Death camera activated");
-            }
-
-            if (normalCamera != null)
-            {
+            if (normalCamera)
                 normalCamera.Priority = 5;
-            }
         }
 
         if (IsServer)
         {
             if (_respawnCoroutine != null)
-            {
                 StopCoroutine(_respawnCoroutine);
-            }
             _respawnCoroutine = StartCoroutine(RespawnRoutine());
         }
     }
 
     private IEnumerator RespawnRoutine()
     {
-        Debug.Log($"[PlayerDeathHandler] Respawn in {respawnDelay}s for client {OwnerClientId}");
         yield return new WaitForSeconds(respawnDelay);
 
-        if (GameStateManager.Instance == null || GameStateManager.Instance.CurrentState != GameState.Playing)
-        {
-            Debug.Log("[PlayerDeathHandler] Match ended, no respawn");
-            _respawnCoroutine = null;
-            yield break;
-        }
+        if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState == GameState.Playing)
+            Respawn();
 
-        Respawn();
         _respawnCoroutine = null;
     }
 
@@ -132,117 +92,68 @@ public class PlayerDeathHandler : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        Debug.Log($"[PlayerDeathHandler] Respawning player {OwnerClientId}");
+        var ss = FindObjectOfType<SpawnSystem>();
+        if (ss == null) return;
 
-        var spawnSystem = FindObjectOfType<SpawnSystem>();
-        if (spawnSystem == null)
-        {
-            Debug.LogError("[PlayerDeathHandler] SpawnSystem not found!");
-            return;
-        }
+        var pt = ss.GetNextSpawnPoint();
+        if (pt == null) return;
 
-        Transform spawnPoint = spawnSystem.GetNextSpawnPoint();
-        if (spawnPoint == null)
-        {
-            Debug.LogError("[PlayerDeathHandler] No spawn point available!");
-            return;
-        }
+        _refs.Health?.ResetHealth();
 
-        if (_refs.Health != null)
-        {
-            _refs.Health.ResetHealth();
-        }
-
-        RespawnClientRpc(spawnPoint.position, spawnPoint.rotation);
+        RespawnClientRpc(pt.position, pt.rotation);
     }
 
     [ClientRpc]
-    private void RespawnClientRpc(Vector3 position, Quaternion rotation)
+    private void RespawnClientRpc(Vector3 pos, Quaternion rot)
     {
-        Debug.Log($"[PlayerDeathHandler] RespawnClientRpc received - Position: {position}");
-        StartCoroutine(RespawnVisualRoutine(position, rotation));
+        StartCoroutine(RespawnVisualRoutine(pos, rot));
     }
 
-    private IEnumerator RespawnVisualRoutine(Vector3 position, Quaternion rotation)
+    private IEnumerator RespawnVisualRoutine(Vector3 pos, Quaternion rot)
     {
-        Debug.Log("[PlayerDeathHandler] Starting respawn visual routine");
-
         _refs.Visual.ResetVisual();
-        Debug.Log("[PlayerDeathHandler] Visual reset complete");
 
         yield return new WaitForSeconds(0.2f);
 
-        var controller = GetComponent<CharacterController>();
-        if (controller != null)
-        {
-            controller.enabled = false;
-            Debug.Log($"[PlayerDeathHandler] Controller disabled before teleport");
-        }
+        var c = GetComponent<CharacterController>();
+        if (c != null)
+            c.enabled = false;
 
         yield return null;
 
-        transform.position = position;
-        transform.rotation = rotation;
-        Debug.Log($"[PlayerDeathHandler] Transform set to: {position}");
+        transform.position = pos;
+        transform.rotation = rot;
 
-        var networkTransform = GetComponent<ClientNetworkTransform>();
-        if (networkTransform != null && IsOwner)
-        {
-            networkTransform.Teleport(position, rotation, transform.localScale);
-            Debug.Log("[PlayerDeathHandler] NetworkTransform teleported");
-        }
+        if (IsOwner)
+            GetComponent<ClientNetworkTransform>()?.Teleport(pos, rot, transform.localScale);
 
         yield return null;
 
-        if (controller != null)
+        if (c != null)
         {
-            transform.position = position;
-            controller.enabled = true;
-            Debug.Log($"[PlayerDeathHandler] Controller enabled. State: {controller.enabled}");
+            transform.position = pos;
+            c.enabled = true;
         }
 
-        foreach (var script in scriptsToDisable)
-        {
-            if (script != null)
-                script.enabled = true;
-        }
-        Debug.Log("[PlayerDeathHandler] Scripts re-enabled");
+        foreach (var s in scriptsToDisable)
+            if (s != null)
+                s.enabled = true;
 
-        if (_refs.Locomotion != null)
-        {
-            _refs.Locomotion.ResetVerticalVelocity();
-        }
+        _refs.Locomotion?.ResetVerticalVelocity();
 
         if (IsOwner)
         {
-            if (deathCamera != null)
-            {
+            if (deathCamera)
                 deathCamera.Priority = 5;
-                Debug.Log("[PlayerDeathHandler] Death camera deactivated");
-            }
-
-            if (normalCamera != null)
-            {
+            if (normalCamera)
                 normalCamera.Priority = 10;
-                Debug.Log("[PlayerDeathHandler] Normal camera activated");
-            }
 
-            var spectateController = GetComponent<PlayerSpectateController>();
-            if (spectateController != null)
-            {
-                spectateController.StopSpectating();
-                Debug.Log("[PlayerDeathHandler] Spectate stopped");
-            }
+            GetComponent<PlayerSpectateController>()?.StopSpectating();
         }
 
         yield return new WaitForSeconds(0.3f);
 
-        if (controller != null && !controller.enabled)
-        {
-            Debug.LogError($"[PlayerDeathHandler] CRITICAL: Controller still disabled! Force enabling...");
-            controller.enabled = true;
-        }
-
-        Debug.Log($"[PlayerDeathHandler] Respawn complete. Controller: {controller != null && controller.enabled}");
+        if (c != null && !c.enabled)
+            c.enabled = true;
     }
 }

@@ -1,10 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections;
 
-/// <summary>
-/// Entity yasam dongusu yoneticisi
-/// Olum durumlarini izler ve temizlik yapar
-/// </summary>
 public class EntityLifecycleSystem : NetworkBehaviour
 {
     public static EntityLifecycleSystem Instance;
@@ -21,41 +18,30 @@ public class EntityLifecycleSystem : NetworkBehaviour
 
     public void RegisterEntity(NetworkObject netObj)
     {
-        if (netObj == null)
-        {
-            Debug.LogWarning("[EntityLifecycleSystem] Tried to register null NetworkObject");
-            return;
-        }
-
-        var health = netObj.GetComponent<HealthComponent>();
-        if (health == null)
-        {
-            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject has no HealthComponent");
-            return;
-        }
-
-        // Despawn et
-        health.OnDeath += () => HandleDeath(netObj);
+        var h = netObj?.GetComponent<HealthComponent>();
+        if (h != null)
+            h.OnDeath += () => HandleDeath(netObj);
     }
 
     private void HandleDeath(NetworkObject netObj)
     {
-        if (!IsServer) return;
+        if (!IsServer || netObj == null || !netObj.IsSpawned) return;
 
-        // NULL CHECK - COK ONEMLI!
-        if (netObj == null || netObj.gameObject == null)
+        var isMob = netObj.GetComponent<MobAIController>() != null;
+
+        if (isMob)
         {
-            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject already destroyed");
-            return;
+            StartCoroutine(DespawnMobAfterDelay(netObj, 0.5f));
         }
+    }
 
-        if (!netObj.IsSpawned)
+    private IEnumerator DespawnMobAfterDelay(NetworkObject netObj, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (netObj != null && netObj.IsSpawned)
         {
-            Debug.LogWarning("[EntityLifecycleSystem] NetworkObject is not spawned");
-            return;
+            netObj.Despawn(true);
         }
-
-        Debug.Log($"[EntityLifecycleSystem] Despawning entity: {netObj.gameObject.name}");
-        netObj.Despawn(true);
     }
 }

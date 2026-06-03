@@ -1,37 +1,25 @@
 using Unity.Netcode;
 using UnityEngine;
 
-/// <summary>
-/// Mob'un melee saldirisinda aktif olan vurma alanini temsil eder.
-/// Trigger'a giren IDamageable hedeflere bir kez hasar uygular.
-/// </summary>
-[RequireComponent(typeof(Collider))]
 public class MobAttackHitbox : MonoBehaviour
 {
     [SerializeField] private float damage = 15f;
-
     private MobAIController _owner;
     private bool _hasHitInThisSwing;
 
     private void Awake()
     {
         var col = GetComponent<Collider>();
+        if (col == null) col = gameObject.AddComponent<BoxCollider>();
         col.isTrigger = true;
     }
 
-    /// <summary>
-    /// MobAI tarafindan initialize edilir.
-    /// </summary>
-    public void Initialize(MobAIController owner, float damageAmount)
+    public void Initialize(MobAIController owner, float dmg)
     {
         _owner = owner;
-        damage = damageAmount;
+        damage = dmg;
     }
 
-    /// <summary>
-    /// Yeni bir attack swing basladiginda cagrilir.
-    /// Bu sayede her swing'de yalnizca bir kez hasar uygulariz.
-    /// </summary>
     public void ResetHitFlag()
     {
         _hasHitInThisSwing = false;
@@ -39,20 +27,20 @@ public class MobAttackHitbox : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Sadece server tarafinda damage uygula
-        if (_owner == null || !_owner.IsServer) return;
+        if (_owner == null || !_owner.IsServer || _hasHitInThisSwing) return;
 
-        if (_hasHitInThisSwing) return;
+        if (other.GetComponentInParent<MobAIController>() != null) return;
 
-        // Kendi mob'una vurma
-        if (other.GetComponentInParent<MobAIController>() != null)
-            return;
-
-        IDamageable damageable = other.GetComponentInParent<IDamageable>();
-        if (damageable != null && !damageable.IsDead)
+        var player = other.GetComponentInParent<PlayerReferences>();
+        if (player != null)
         {
-            damageable.TakeDamage(damage, 0);
-            _hasHitInThisSwing = true;
+            var health = player.Health;
+            if (health != null && !health.IsDead)
+            {
+                health.TakeDamage(damage, 0);
+                _hasHitInThisSwing = true;
+                Debug.Log($"Mob hit player for {damage} damage!");
+            }
         }
     }
 }
