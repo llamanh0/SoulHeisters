@@ -6,6 +6,8 @@ public class EntityLifecycleSystem : NetworkBehaviour
 {
     public static EntityLifecycleSystem Instance;
 
+    [SerializeField] private float corpseLifetime = 5f;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -31,7 +33,7 @@ public class EntityLifecycleSystem : NetworkBehaviour
 
         if (isMob)
         {
-            StartCoroutine(DespawnMobAfterDelay(netObj, 0.5f));
+            StartCoroutine(DespawnMobAfterDelay(netObj, corpseLifetime));
         }
     }
 

@@ -52,12 +52,8 @@ public class LobbyUI : MonoBehaviour
     
     private void OnDestroy()
     {
-        Debug.Log("[LobbyUI] OnDestroy - Cleaning up");
-
-        // Tum coroutine'leri durdur
         StopAllCoroutines();
 
-        // Event listener'lari temizle
         if (readyButton != null)
             readyButton.onClick.RemoveAllListeners();
 
@@ -122,13 +118,11 @@ public class LobbyUI : MonoBehaviour
     {
         if (_playerCards.ContainsKey(playerData.clientId))
         {
-            Debug.LogWarning($"[LobbyUI] Player card already exists: {playerData.clientId}");
             return;
         }
 
         if (playerCardPrefab == null || playerListContent == null)
         {
-            Debug.LogError("[LobbyUI] Player card prefab or content is null!");
             return;
         }
 

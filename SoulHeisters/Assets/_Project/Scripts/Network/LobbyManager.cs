@@ -38,9 +38,6 @@ public class LobbyManager : NetworkBehaviour
 
     public override void OnDestroy()
     {
-        Debug.Log("[LobbyManager] OnDestroy - Cleaning up");
-        
-        // Tum coroutine'leri durdur
         StopAllCoroutines();
     }
 
@@ -50,7 +47,6 @@ public class LobbyManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        Debug.Log("[LobbyManager] OnNetworkSpawn called");
 
         if (IsServer)
         {
@@ -61,13 +57,10 @@ public class LobbyManager : NetworkBehaviour
 
             foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
             {
-                Debug.Log($"[LobbyManager] Adding existing client: {client.ClientId}");
                 string playerName = $"Player{client.ClientId}";
                 PlayerLobbyData newPlayer = new PlayerLobbyData(client.ClientId, playerName, false);
                 _playersInLobby.Add(newPlayer);
             }
-
-            Debug.Log($"[LobbyManager] Total players added: {_playersInLobby.Count}");
         }
 
         _playersInLobby.OnListChanged += HandleLobbyListChanged;
@@ -75,16 +68,10 @@ public class LobbyManager : NetworkBehaviour
         if (lobbyUI != null)
         {
             lobbyUI.SetLobbyCode(_lobbyCode);
-            Debug.Log($"[LobbyManager] Loading {_playersInLobby.Count} players to UI");
             foreach (var player in _playersInLobby)
             {
-                Debug.Log($"[LobbyManager] Adding player card to UI: {player.playerName}");
                 lobbyUI.AddPlayerCard(player);
             }
-        }
-        else
-        {
-            Debug.LogError("[LobbyManager] LobbyUI is NULL!");
         }
     }
 
@@ -129,8 +116,6 @@ public class LobbyManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        Debug.Log($"[LobbyManager] Client connected: {clientId}");
-
         string playerName = $"Player{clientId}";
         PlayerLobbyData newPlayer = new PlayerLobbyData(clientId, playerName, false);
         _playersInLobby.Add(newPlayer);
@@ -142,9 +127,6 @@ public class LobbyManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        Debug.Log($"[LobbyManager] Client disconnected: {clientId}");
-
-        // Host ayrildi mi?
         bool wasHost = clientId == 0;
 
         for (int i = _playersInLobby.Count - 1; i >= 0; i--)
@@ -152,15 +134,12 @@ public class LobbyManager : NetworkBehaviour
             if (_playersInLobby[i].clientId == clientId)
             {
                 _playersInLobby.RemoveAt(i);
-                Debug.Log($"[LobbyManager] Removed player (Remaining: {_playersInLobby.Count})");
                 break;
             }
         }
 
-        // Host ayrildi, herkesi at
         if (wasHost)
         {
-            Debug.Log("[LobbyManager] Host left, closing lobby");
             CloseLobbyServerRpc();
         }
     }
@@ -177,8 +156,6 @@ public class LobbyManager : NetworkBehaviour
     [ClientRpc]
     private void NotifyLobbyClosedClientRpc()
     {
-        Debug.Log("[LobbyManager] Lobby closed by host");
-    
         // TODO: UI ile bildir
     }
 
@@ -197,7 +174,6 @@ public class LobbyManager : NetworkBehaviour
         if (RelayManager.Instance != null && !string.IsNullOrEmpty(RelayManager.Instance.CurrentJoinCode))
         {
             _lobbyCode = RelayManager.Instance.CurrentJoinCode;
-            Debug.Log($"[LobbyManager] Using Relay join code: {_lobbyCode}");
         }
         else
         {
@@ -206,7 +182,6 @@ public class LobbyManager : NetworkBehaviour
             for (int i = 0; i < 6; i++)
                 code.Append(chars[Random.Range(0, chars.Length)]);
             _lobbyCode = code.ToString();
-            Debug.Log($"[LobbyManager] Generated fallback code: {_lobbyCode}");
         }
     }
 
@@ -223,7 +198,6 @@ public class LobbyManager : NetworkBehaviour
             lobbyUI.SetLobbyCode(code);
         }
 
-        Debug.Log($"[LobbyManager] Received lobby code: {code}");
     }
 
     #endregion
@@ -232,28 +206,23 @@ public class LobbyManager : NetworkBehaviour
 
     private void HandleLobbyListChanged(NetworkListEvent<PlayerLobbyData> changeEvent)
     {
-        Debug.Log($"[LobbyManager] List changed - Type: {changeEvent.Type}");
 
         if (lobbyUI == null)
         {
-            Debug.LogError("[LobbyManager] LobbyUI is null!");
             return;
         }
 
         switch (changeEvent.Type)
         {
             case NetworkListEvent<PlayerLobbyData>.EventType.Add:
-                Debug.Log($"[LobbyManager] Adding player card: {changeEvent.Value.playerName}");
                 lobbyUI.AddPlayerCard(changeEvent.Value);
                 break;
 
             case NetworkListEvent<PlayerLobbyData>.EventType.Remove:
-                Debug.Log($"[LobbyManager] Removing player card: {changeEvent.Value.clientId}");
                 lobbyUI.RemovePlayerCard(changeEvent.Value.clientId);
                 break;
 
             case NetworkListEvent<PlayerLobbyData>.EventType.Value:
-                Debug.Log($"[LobbyManager] Updating player card: {changeEvent.Value.playerName}");
                 lobbyUI.UpdatePlayerCard(changeEvent.Value);
                 break;
         }
@@ -268,8 +237,6 @@ public class LobbyManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void SetPlayerReadyServerRpc(ulong clientId, bool isReady)
     {
-        Debug.Log($"[LobbyManager] SetPlayerReady - Client: {clientId}, Ready: {isReady}");
-
         for (int i = 0; i < _playersInLobby.Count; i++)
         {
             if (_playersInLobby[i].clientId == clientId)
@@ -277,8 +244,6 @@ public class LobbyManager : NetworkBehaviour
                 PlayerLobbyData data = _playersInLobby[i];
                 data.isReady = isReady;
                 _playersInLobby[i] = data;
-
-                Debug.Log($"[LobbyManager] Player {data.playerName} ready state: {isReady}");
                 break;
             }
         }
@@ -287,8 +252,6 @@ public class LobbyManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void SetPlayerNameServerRpc(ulong clientId, string newName)
     {
-        Debug.Log($"[LobbyManager] SetPlayerName - Client: {clientId}, Name: {newName}");
-
         for (int i = 0; i < _playersInLobby.Count; i++)
         {
             if (_playersInLobby[i].clientId == clientId)
@@ -313,8 +276,6 @@ public class LobbyManager : NetworkBehaviour
 
     public void TryStartGame()
     {
-        Debug.Log("[LobbyManager] TryStartGame called");
-
         if (!IsServer)
         {
             RequestStartGameServerRpc();
@@ -323,14 +284,9 @@ public class LobbyManager : NetworkBehaviour
 
         if (!CanStartGame(out string reason))
         {
-            Debug.LogWarning($"[LobbyManager] Cannot start: {reason}");
-            
-            // UI'de bildirim goster
             ShowCannotStartNotificationClientRpc(reason);
             return;
         }
-
-        Debug.Log("[LobbyManager] Starting game...");
         StartGameServerRpc();
     }
 
@@ -346,21 +302,13 @@ public class LobbyManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void StartGameServerRpc()
     {
-        Debug.Log($"[LobbyManager] Starting game - Loading {gameSceneName}");
-
-        // UI'de loading goster
         ShowLoadingPanelClientRpc();
-
-        // SADECE SCENE YUKLE
-        // AppNetManager otomatik olarak cleanup yapacak
         StartCoroutine(LoadGameSceneWithDelay());
     }
 
     private IEnumerator LoadGameSceneWithDelay()
     {
         yield return new WaitForSeconds(0.5f);
-
-        Debug.Log($"[LobbyManager] Loading scene: {gameSceneName}");
 
         NetworkManager.Singleton.SceneManager.LoadScene(
             gameSceneName,
@@ -380,10 +328,7 @@ public class LobbyManager : NetworkBehaviour
     [ClientRpc]
     private void ShowCannotStartNotificationClientRpc(string reason)
     {
-        Debug.Log($"[LobbyManager] Cannot start: {reason}");
-        
         // TODO: UI Toast notification
-        // Simdilik sadece log
     }
 
     private bool CanStartGame(out string reason)

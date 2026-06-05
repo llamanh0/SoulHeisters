@@ -43,7 +43,6 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     {
         if (d)
         {
-            Debug.Log($"{gameObject.name} died!");
             OnDeath?.Invoke();
         }
     }
@@ -54,8 +53,6 @@ public class HealthComponent : NetworkBehaviour, IDamageable
 
         float actualDamage = amt * (1f - _damageReductionPercent);
         currentHealth.Value = Mathf.Max(0f, currentHealth.Value - actualDamage);
-
-        Debug.Log($"{gameObject.name} took {actualDamage} damage, health: {currentHealth.Value}");
 
         if (currentHealth.Value <= 0f && !_isDead.Value)
         {

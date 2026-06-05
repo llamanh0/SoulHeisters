@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,24 +8,20 @@ public class GameStateManager : NetworkBehaviour
 {
     public static GameStateManager Instance;
 
-    private NetworkVariable<GameState> currentState =
-        new NetworkVariable<GameState>(GameState.WaitingForPlayers);
-
-    private NetworkVariable<float> _networkMatchStartTime = new(
-        0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-    private NetworkVariable<int> _countdownTimer = new(
-        3, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<GameState> currentState = new(GameState.WaitingForPlayers);
+    private NetworkVariable<float> _networkMatchStartTime = new(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int> _countdownTimer = new(3, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public GameState CurrentState => currentState.Value;
     public int CountdownTimer => _countdownTimer.Value;
 
-    public System.Action OnMatchStarted;
-    public System.Action OnMatchEnded;
+    public Action OnMatchStarted;
+    public Action OnMatchEnded;
 
-    [Header("Match Settings")]
     [SerializeField] private float matchDuration = 300f;
+    [SerializeField] private float returnToLobbyDelay = 10f;
     [SerializeField] private string gameSceneName = "GameScene";
+    [SerializeField] private string lobbySceneName = "LobbyScene";
 
     private float matchStartTime;
     private bool _gameStarted = false;
@@ -34,7 +30,6 @@ public class GameStateManager : NetworkBehaviour
     {
         if (SceneManager.GetActiveScene().name != gameSceneName)
         {
-            Debug.LogWarning("[GameStateManager] Not in GameScene, destroying");
             Destroy(gameObject);
             return;
         }
@@ -45,20 +40,14 @@ public class GameStateManager : NetworkBehaviour
             return;
         }
         Instance = this;
-        Debug.Log("[GameStateManager] Initialized in GameScene");
     }
 
     public override void OnNetworkSpawn()
     {
-        if (SceneManager.GetActiveScene().name != gameSceneName)
-        {
-            Debug.LogWarning("[GameStateManager] OnNetworkSpawn not in GameScene, ignoring");
-            return;
-        }
+        if (SceneManager.GetActiveScene().name != gameSceneName) return;
 
         if (IsServer && !_gameStarted)
         {
-            Debug.Log("[GameStateManager] Starting game loop");
             _gameStarted = true;
             StartCoroutine(GameLoop());
         }
@@ -74,33 +63,21 @@ public class GameStateManager : NetworkBehaviour
     private void HandleStateChanged(GameState oldState, GameState newState)
     {
         if (newState == GameState.Playing)
-        {
             StartCoroutine(ForceEnableAllControllers());
-        }
+
+        if (newState == GameState.MatchEnded)
+            UnlockCursor();
     }
 
     private IEnumerator ForceEnableAllControllers()
     {
         yield return new WaitForSeconds(0.5f);
-
-        var allPlayers = FindObjectsOfType<PlayerReferences>();
-
-        foreach (var player in allPlayers)
+        foreach (var player in FindObjectsOfType<PlayerReferences>())
         {
-            if (player == null) continue;
-
-            var netObj = player.GetComponent<NetworkObject>();
-            if (netObj == null) continue;
-
-            var controller = player.GetComponent<CharacterController>();
-            if (controller != null && !controller.enabled)
-            {
-                controller.enabled = true;
-                Debug.Log($"[GameStateManager] Force enabled controller for client {netObj.OwnerClientId}");
-            }
+            var c = player.GetComponent<CharacterController>();
+            if (c != null && !c.enabled)
+                c.enabled = true;
         }
-
-        Debug.Log("[GameStateManager] Controller check complete");
     }
 
     private IEnumerator GameLoop()
@@ -114,66 +91,32 @@ public class GameStateManager : NetworkBehaviour
     private IEnumerator WaitForPlayers()
     {
         currentState.Value = GameState.WaitingForPlayers;
-        Debug.Log("[GameStateManager] Waiting for all players to be ready...");
-
         yield return new WaitForSeconds(0.5f);
-
         while (!AreAllPlayersReady())
-        {
             yield return new WaitForSeconds(0.5f);
-        }
-
-        Debug.Log("[GameStateManager] All players ready!");
     }
 
     private bool AreAllPlayersReady()
     {
-        if (NetworkManager.Singleton.ConnectedClients.Count == 0)
-            return false;
-
-        List<PlayerReadyState> playerStates = new List<PlayerReadyState>();
+        if (NetworkManager.Singleton.ConnectedClients.Count == 0) return false;
 
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            if (client.PlayerObject == null)
-            {
-                Debug.Log($"[GameStateManager] Client {client.ClientId} has no PlayerObject yet");
-                return false;
-            }
-
-            var readyState = client.PlayerObject.GetComponent<PlayerReadyState>();
-            if (readyState == null)
-            {
-                Debug.LogWarning($"[GameStateManager] Client {client.ClientId} has no PlayerReadyState");
-                return false;
-            }
-
-            if (!readyState.IsReady)
-            {
-                Debug.Log($"[GameStateManager] Client {client.ClientId} not ready yet");
-                return false;
-            }
-
-            playerStates.Add(readyState);
+            if (client.PlayerObject == null) return false;
+            var r = client.PlayerObject.GetComponent<PlayerReadyState>();
+            if (r == null || !r.IsReady) return false;
         }
-
-        Debug.Log($"[GameStateManager] All {playerStates.Count} players are ready!");
         return true;
     }
 
     private IEnumerator StartingPhase()
     {
         currentState.Value = GameState.Starting;
-        Debug.Log("[GameStateManager] Match starting countdown...");
-
         for (int i = 3; i > 0; i--)
         {
             _countdownTimer.Value = i;
-            Debug.Log($"[GameStateManager] Countdown: {i}");
             yield return new WaitForSeconds(1f);
         }
-
-        Debug.Log("[GameStateManager] Match started!");
         OnMatchStarted?.Invoke();
     }
 
@@ -183,17 +126,12 @@ public class GameStateManager : NetworkBehaviour
         _networkMatchStartTime.Value = (float)NetworkManager.ServerTime.Time;
         currentState.Value = GameState.Playing;
 
-        Debug.Log("[GameStateManager] Playing phase started");
-
         while (!IsMatchFinished())
             yield return null;
-
-        Debug.Log("[GameStateManager] Match finished!");
     }
 
     public override void OnDestroy()
     {
-        Debug.Log("[GameStateManager] OnDestroy");
         StopAllCoroutines();
     }
 
@@ -202,25 +140,108 @@ public class GameStateManager : NetworkBehaviour
         currentState.Value = GameState.MatchEnded;
         OnMatchEnded?.Invoke();
 
-        yield return new WaitForSeconds(5f);
+        DisableAllPlayerControls();
+        UnlockCursor();
+
+        var winner = DetermineWinner();
+
+        if (winner.clientId != ulong.MaxValue)
+        {
+            ShowWinnerClientRpc(winner.clientId, winner.playerName, winner.soulCount);
+        }
+
+        yield return new WaitForSeconds(returnToLobbyDelay);
 
         if (IsServer)
         {
-            Debug.Log("[GameStateManager] Match ended, cleaning up");
+            CleanupBeforeLobbyClientRpc();
+            yield return new WaitForSeconds(0.5f);
+            NetworkManager.Singleton.SceneManager.LoadScene(lobbySceneName, LoadSceneMode.Single);
         }
+    }
+
+    private void DisableAllPlayerControls()
+    {
+        foreach (var player in FindObjectsOfType<PlayerReferences>())
+        {
+            if (player.Input != null)
+                player.Input.enabled = false;
+
+            if (player.Locomotion != null)
+                player.Locomotion.enabled = false;
+
+            if (player.Combat != null)
+                player.Combat.enabled = false;
+        }
+    }
+
+    private void UnlockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private (ulong clientId, string playerName, int soulCount) DetermineWinner()
+    {
+        ulong winnerId = ulong.MaxValue;
+        string winnerName = "Unknown";
+        int maxSouls = -1;
+
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            if (client.PlayerObject == null) continue;
+
+            var soul = client.PlayerObject.GetComponent<SoulComponent>();
+            if (soul != null && soul.SoulCount.Value > maxSouls)
+            {
+                maxSouls = soul.SoulCount.Value;
+                winnerId = client.ClientId;
+
+                if (PlayerNameRegistry.Instance != null)
+                    winnerName = PlayerNameRegistry.Instance.GetPlayerName(client.ClientId);
+                else
+                    winnerName = $"Player {client.ClientId}";
+            }
+        }
+
+        return (winnerId, winnerName, maxSouls);
+    }
+
+    [ClientRpc]
+    private void ShowWinnerClientRpc(ulong winnerId, string winnerName, int soulCount)
+    {
+        UnlockCursor();
+
+        var matchEndUI = FindObjectOfType<MatchEndUI>();
+        if (matchEndUI != null)
+        {
+            matchEndUI.ShowWinner(winnerName, soulCount, returnToLobbyDelay);
+        }
+    }
+
+    [ClientRpc]
+    private void CleanupBeforeLobbyClientRpc()
+    {
+        var players = FindObjectsOfType<PlayerReferences>();
+        foreach (var player in players)
+        {
+            if (player != null && player.gameObject != null)
+            {
+                Destroy(player.gameObject);
+            }
+        }
+
+        UnlockCursor();
     }
 
     private bool IsMatchFinished()
     {
-        if (!IsServer) return false;
-        float elapsed = Time.time - matchStartTime;
-        return elapsed >= matchDuration;
+        return IsServer && (Time.time - matchStartTime) >= matchDuration;
     }
 
     public float GetRemainingTime()
     {
         if (CurrentState != GameState.Playing) return matchDuration;
-        float elapsed = (float)NetworkManager.ServerTime.Time - _networkMatchStartTime.Value;
-        return Mathf.Max(0f, matchDuration - elapsed);
+        return Mathf.Max(0f, matchDuration - ((float)NetworkManager.ServerTime.Time - _networkMatchStartTime.Value));
     }
 }

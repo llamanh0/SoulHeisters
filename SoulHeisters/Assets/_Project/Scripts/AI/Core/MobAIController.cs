@@ -12,18 +12,23 @@ public class MobAIController : NetworkBehaviour
     [SerializeField] private float attackWindupTime = 0.3f;
     [SerializeField] private float attackLockTime = 0.7f;
     [SerializeField] private float hitboxActiveTime = 0.2f;
+    private float hitStunDuration = 1.1f;
     [SerializeField] private MobAttackHitbox attackHitbox;
 
     private float _lastAttackTime;
     private float _attackLockEndTime;
+    private float _hitStunEndTime;
     private Transform _target;
     private bool _isPerformingSwing;
+    private bool _isInHitStun;
     private HealthComponent _health;
     private bool _isDead;
+    private Animator _animator;
 
     private void Awake()
     {
         _health = GetComponent<HealthComponent>();
+        _animator = GetComponent<Animator>();
     }
 
     public override void OnNetworkSpawn()
@@ -39,6 +44,7 @@ public class MobAIController : NetworkBehaviour
         if (_health != null)
         {
             _health.OnDeath += HandleDeath;
+            _health.OnHealthChanged += HandleHealthChanged;
         }
     }
 
@@ -47,6 +53,21 @@ public class MobAIController : NetworkBehaviour
         if (_health != null)
         {
             _health.OnDeath -= HandleDeath;
+            _health.OnHealthChanged -= HandleHealthChanged;
+        }
+    }
+
+    private void HandleHealthChanged(float oldVal, float newVal)
+    {
+        if (newVal >= oldVal || _isDead) return;
+
+        _isInHitStun = true;
+        _hitStunEndTime = Time.time + hitStunDuration;
+
+        if (_animator != null)
+        {
+            _animator.SetTrigger("Hit");
+            PlayHitAnimationClientRpc();
         }
     }
 
@@ -55,13 +76,25 @@ public class MobAIController : NetworkBehaviour
         _isDead = true;
         _target = null;
         StopAllCoroutines();
+
         if (attackHitbox != null)
             attackHitbox.gameObject.SetActive(false);
+
+        if (_animator != null)
+        {
+            _animator.SetBool("IsDead", true);
+            PlayDeathAnimationClientRpc();
+        }
     }
 
     private void Update()
     {
         if (!IsServer || _isDead) return;
+
+        if (_isInHitStun && Time.time < _hitStunEndTime)
+            return;
+
+        _isInHitStun = false;
 
         if (_target == null)
         {
@@ -106,6 +139,8 @@ public class MobAIController : NetworkBehaviour
         if (dist > aggroRange * 1.5f)
         {
             _target = null;
+            if (_animator != null)
+                _animator.SetBool("IsMoving", false);
             return;
         }
 
@@ -127,6 +162,14 @@ public class MobAIController : NetworkBehaviour
 
         _lastAttackTime = Time.time;
         _isPerformingSwing = true;
+
+        if (_animator != null)
+        {
+            _animator.SetBool("IsMoving", false);
+            _animator.SetTrigger("Attack");
+            PlayAttackAnimationClientRpc();
+        }
+
         StartCoroutine(AttackSwingRoutine());
     }
 
@@ -171,6 +214,9 @@ public class MobAIController : NetworkBehaviour
         dir.y = 0f;
         transform.position += dir * moveSpeed * Time.deltaTime;
 
+        if (_animator != null)
+            _animator.SetBool("IsMoving", true);
+
         if (dir != Vector3.zero)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 10f);
     }
@@ -191,6 +237,27 @@ public class MobAIController : NetworkBehaviour
     {
         if (attackHitbox != null)
             attackHitbox.gameObject.SetActive(isActive);
+    }
+
+    [ClientRpc]
+    private void PlayAttackAnimationClientRpc()
+    {
+        if (_animator != null)
+            _animator.SetTrigger("Attack");
+    }
+
+    [ClientRpc]
+    private void PlayHitAnimationClientRpc()
+    {
+        if (_animator != null)
+            _animator.SetTrigger("Hit");
+    }
+
+    [ClientRpc]
+    private void PlayDeathAnimationClientRpc()
+    {
+        if (_animator != null)
+            _animator.SetBool("IsDead", true);
     }
 
     public void SetMobStats(float speed, float range, float damage, float cooldown, float aggro)

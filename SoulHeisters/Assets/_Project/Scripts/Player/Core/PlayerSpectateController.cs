@@ -67,7 +67,6 @@ public class PlayerSpectateController : NetworkBehaviour
 
         if (_alivePlayers.Count == 0)
         {
-            Debug.Log("[PlayerSpectateController] No alive players to spectate");
             yield break;
         }
 
@@ -87,8 +86,6 @@ public class PlayerSpectateController : NetworkBehaviour
             if (p.Health != null && p.Health.IsDead) continue;
             _alivePlayers.Add(p);
         }
-
-        Debug.Log($"[PlayerSpectateController] Found {_alivePlayers.Count} alive players");
     }
 
     private void SetSpectateTarget(PlayerReferences targetPlayer)
@@ -102,8 +99,6 @@ public class PlayerSpectateController : NetworkBehaviour
         spectateCamera.Follow = camRoot;
         spectateCamera.LookAt = camRoot;
         spectateCamera.Priority = 50;
-
-        Debug.Log($"[PlayerSpectateController] Spectating player {targetPlayer.GetComponent<NetworkObject>().OwnerClientId}");
     }
 
     public void StopSpectating()
@@ -118,8 +113,6 @@ public class PlayerSpectateController : NetworkBehaviour
             spectateCamera.LookAt = null;
             spectateCamera.Priority = 5;
         }
-
-        Debug.Log("[PlayerSpectateController] Spectating stopped");
     }
 
     private void Update()

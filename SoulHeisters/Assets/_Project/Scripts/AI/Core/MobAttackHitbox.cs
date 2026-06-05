@@ -29,6 +29,9 @@ public class MobAttackHitbox : MonoBehaviour
     {
         if (_owner == null || !_owner.IsServer || _hasHitInThisSwing) return;
 
+        var ownerHealth = _owner.GetComponent<HealthComponent>();
+        if (ownerHealth != null && ownerHealth.IsDead) return;
+
         if (other.GetComponentInParent<MobAIController>() != null) return;
 
         var player = other.GetComponentInParent<PlayerReferences>();
@@ -39,7 +42,6 @@ public class MobAttackHitbox : MonoBehaviour
             {
                 health.TakeDamage(damage, 0);
                 _hasHitInThisSwing = true;
-                Debug.Log($"Mob hit player for {damage} damage!");
             }
         }
     }

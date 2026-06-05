@@ -14,6 +14,7 @@ public class SoulDropper : NetworkBehaviour
     private HealthComponent _health;
     private SoulComponent _soulComponent;
     private bool _isPlayer;
+    private bool _hasDroppedSoul;
 
     private void Awake()
     {
@@ -24,19 +25,34 @@ public class SoulDropper : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if (IsServer && _health != null)
+        if (!IsServer) return;
+
+        if (_health != null)
+        {
             _health.OnDeath += HandleDeath;
+        }
     }
 
     public override void OnNetworkDespawn()
     {
-        if (IsServer && _health != null)
+        if (_health != null)
             _health.OnDeath -= HandleDeath;
     }
 
     private void HandleDeath()
     {
-        if (!IsServer || soulPickupPrefabs == null || soulPickupPrefabs.Count == 0) return;
+        if (!IsServer || _hasDroppedSoul)
+        {
+            return;
+        }
+
+        _hasDroppedSoul = true;
+
+
+        if (soulPickupPrefabs == null || soulPickupPrefabs.Count == 0)
+        {
+            return;
+        }
 
         int dropCount = soulDropAmount;
 
@@ -48,7 +64,10 @@ public class SoulDropper : NetworkBehaviour
             _soulComponent.SoulCount.Value = remainingSouls;
         }
 
-        if (dropCount <= 0) return;
+        if (dropCount <= 0)
+        {
+            return;
+        }
 
         Vector3 dropPosition = transform.position + Vector3.up * dropHeight;
 
@@ -94,6 +113,10 @@ public class SoulDropper : NetworkBehaviour
             if (netObj != null)
             {
                 netObj.Spawn();
+            }
+            else
+            {
+                Destroy(soul);
             }
         }
     }
