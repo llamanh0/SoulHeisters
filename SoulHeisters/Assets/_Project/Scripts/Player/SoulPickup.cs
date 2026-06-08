@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using DG.Tweening;
+using System.Collections.Generic;
 
 public class SoulPickup : NetworkBehaviour
 {
@@ -11,6 +12,7 @@ public class SoulPickup : NetworkBehaviour
     [SerializeField] private float floatAmount = 0.3f;
     [SerializeField] private float floatSpeed = 2f;
     [SerializeField] private float targetHeightOffset = 1.5f;
+    [SerializeField] private float respawnIgnoreDuration = 2f;
     [SerializeField] private AudioClip dropSound;
     [SerializeField] private AudioClip collectSound;
     [SerializeField] private float dropSoundVolume = 0.5f;
@@ -21,7 +23,7 @@ public class SoulPickup : NetworkBehaviour
     private bool _isMagnetActive;
     private Tweener _floatTween;
     private Rigidbody _rb;
-    private AudioSource _audioSource;
+    private static HashSet<ulong> _recentlyRespawnedPlayers = new();
 
     private void Awake()
     {
@@ -29,12 +31,6 @@ public class SoulPickup : NetworkBehaviour
         var col = GetComponent<Collider>();
         if (col != null)
             col.isTrigger = true;
-
-        _audioSource = gameObject.AddComponent<AudioSource>();
-        _audioSource.spatialBlend = 1f;
-        _audioSource.minDistance = 3f;
-        _audioSource.maxDistance = 15f;
-        _audioSource.playOnAwake = false;
     }
 
     public override void OnNetworkSpawn()
@@ -47,9 +43,7 @@ public class SoulPickup : NetworkBehaviour
         DisableParticleShapeEmission();
 
         if (dropSound != null)
-        {
-            _audioSource.PlayOneShot(dropSound, dropSoundVolume);
-        }
+            AudioSource.PlayClipAtPoint(dropSound, transform.position, dropSoundVolume);
     }
 
     private void DisableParticleShapeEmission()
@@ -62,7 +56,6 @@ public class SoulPickup : NetworkBehaviour
                 shape.shapeType == ParticleSystemShapeType.MeshRenderer ||
                 shape.shapeType == ParticleSystemShapeType.SkinnedMeshRenderer)
             {
-                var main = ps.main;
                 shape.shapeType = ParticleSystemShapeType.Sphere;
                 shape.radius = 0.1f;
             }
@@ -98,6 +91,14 @@ public class SoulPickup : NetworkBehaviour
 
         if (_target != null)
         {
+            var playerHealth = _target.GetComponent<HealthComponent>();
+            if (playerHealth != null && playerHealth.IsDead)
+            {
+                _target = null;
+                _isMagnetActive = false;
+                return;
+            }
+
             if (!_isMagnetActive)
             {
                 _isMagnetActive = true;
@@ -113,6 +114,9 @@ public class SoulPickup : NetworkBehaviour
         {
             var player = client.PlayerObject;
             if (player == null) continue;
+
+            if (_recentlyRespawnedPlayers.Contains(client.ClientId))
+                continue;
 
             var health = player.GetComponent<HealthComponent>();
             if (health != null && health.IsDead) continue;
@@ -143,7 +147,7 @@ public class SoulPickup : NetworkBehaviour
                 soul.AddSoulServerRpc(soulAmount);
                 _floatTween?.Kill();
 
-                PlayCollectSoundClientRpc();
+                PlayCollectSoundClientRpc(transform.position);
 
                 if (NetworkObject != null && NetworkObject.IsSpawned)
                     NetworkObject.Despawn(true);
@@ -152,12 +156,10 @@ public class SoulPickup : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void PlayCollectSoundClientRpc()
+    private void PlayCollectSoundClientRpc(Vector3 pos)
     {
-        if (_audioSource != null && collectSound != null)
-        {
-            _audioSource.PlayOneShot(collectSound, collectSoundVolume);
-        }
+        if (collectSound != null)
+            AudioSource.PlayClipAtPoint(collectSound, pos, collectSoundVolume);
     }
 
     public void SetSoulAmount(int amount)
@@ -169,5 +171,15 @@ public class SoulPickup : NetworkBehaviour
     {
         dropSound = drop;
         collectSound = collect;
+    }
+
+    public static void MarkPlayerAsRespawned(ulong clientId, float duration)
+    {
+        _recentlyRespawnedPlayers.Add(clientId);
+    }
+
+    public static void ClearRespawnedPlayer(ulong clientId)
+    {
+        _recentlyRespawnedPlayers.Remove(clientId);
     }
 }

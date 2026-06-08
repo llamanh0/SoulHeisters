@@ -9,6 +9,9 @@ public class PlayerDeathHandler : NetworkBehaviour
     [SerializeField] private CinemachineVirtualCamera normalCamera;
     [SerializeField] private MonoBehaviour[] scriptsToDisable;
     [SerializeField] private float respawnDelay = 15f;
+    [SerializeField] private float soulIgnoreDuration = 2f;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private float deathSoundVolume = 0.7f;
 
     private PlayerReferences _refs;
     private Coroutine _respawnCoroutine;
@@ -70,12 +73,21 @@ public class PlayerDeathHandler : NetworkBehaviour
                 normalCamera.Priority = 5;
         }
 
+        PlayDeathSoundClientRpc(transform.position);
+
         if (IsServer)
         {
             if (_respawnCoroutine != null)
                 StopCoroutine(_respawnCoroutine);
             _respawnCoroutine = StartCoroutine(RespawnRoutine());
         }
+    }
+
+    [ClientRpc]
+    private void PlayDeathSoundClientRpc(Vector3 pos)
+    {
+        if (deathSound != null)
+            AudioSource.PlayClipAtPoint(deathSound, pos, deathSoundVolume);
     }
 
     private IEnumerator RespawnRoutine()
@@ -100,7 +112,15 @@ public class PlayerDeathHandler : NetworkBehaviour
 
         _refs.Health?.ResetHealth();
 
+        SoulPickup.MarkPlayerAsRespawned(OwnerClientId, soulIgnoreDuration);
+        Invoke(nameof(ClearRespawnFlag), soulIgnoreDuration);
+
         RespawnClientRpc(pt.position, pt.rotation);
+    }
+
+    private void ClearRespawnFlag()
+    {
+        SoulPickup.ClearRespawnedPlayer(OwnerClientId);
     }
 
     [ClientRpc]

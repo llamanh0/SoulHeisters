@@ -20,6 +20,10 @@ public class PlayerCombat : NetworkBehaviour
     [Header("Aim Settings")]
     [SerializeField] private float maxAimDistance = 200f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip arcBurstSound;
+    [SerializeField] private float arcBurstSoundVolume = 0.6f;
+
     private PlayerReferences _refs;
 
     private void Awake()
@@ -185,13 +189,16 @@ public class PlayerCombat : NetworkBehaviour
             damageable.TakeDamage(damage, OwnerClientId);
         }
 
-        ArcBurstVFXClientRpc();
+        ArcBurstVFXClientRpc(transform.position);
     }
 
     [ClientRpc]
-    private void ArcBurstVFXClientRpc()
+    private void ArcBurstVFXClientRpc(Vector3 pos)
     {
-        Instantiate(arcBurstVFX, transform.position - new Vector3(0f, 7f, 0f), Quaternion.identity);
+        Instantiate(arcBurstVFX, pos - new Vector3(0f, 7f, 0f), Quaternion.identity);
+
+        if (arcBurstSound != null)
+            AudioSource.PlayClipAtPoint(arcBurstSound, pos, arcBurstSoundVolume);
     }
 
     [ServerRpc]

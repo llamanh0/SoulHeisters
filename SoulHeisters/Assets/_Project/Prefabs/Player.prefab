@@ -4913,7 +4913,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1473277844
+  GlobalObjectIdHash: 3240785465
   InScenePlacedSourceGlobalObjectIdHash: 3240785465
   DeferredDespawnTick: 0
   Ownership: 1
@@ -5123,6 +5123,8 @@ MonoBehaviour:
   boltServerPrefab: {fileID: 1313409192446951871, guid: 9102a927445b6f047bccc489e28f9c19,
     type: 3}
   maxAimDistance: 200
+  arcBurstSound: {fileID: 8300000, guid: e15574961792936439843259baaa35a3, type: 3}
+  arcBurstSoundVolume: 0.6
 --- !u!114 &4972905238046737095
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5243,6 +5245,8 @@ MonoBehaviour:
   - {fileID: 6838698843976061682}
   - {fileID: 6705492764302282742}
   respawnDelay: 15
+  deathSound: {fileID: 8300000, guid: d98b65ab54030d04db2492d41e2ec190, type: 3}
+  deathSoundVolume: 0.7
 --- !u!114 &5495457882395520287
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5423,7 +5427,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSoulAudio
   collectSounds:
   - {fileID: 8300000, guid: 4a1ad6158fe08094f98cc728a92ace62, type: 3}
-  volume: 0.4
+  volume: 0.2
 --- !u!1 &5413179564344875539
 GameObject:
   m_ObjectHideFlags: 0

@@ -88,6 +88,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpellBookPickup
   ShowTopMostFoldoutHeaderGroup: 1
   spellDefinition: {fileID: 11400000, guid: 84e0671555ab42a4b83e2a7a83f83f8c, type: 2}
+  pickupSound: {fileID: 8300000, guid: 215d832ef44b3cd4eaaaa4cd8a27cbcd, type: 3}
+  pickupSoundVolume: 0.7
 --- !u!65 &3900950786502940720
 BoxCollider:
   m_ObjectHideFlags: 0
