@@ -12,7 +12,7 @@ public class MobAIController : NetworkBehaviour
     [SerializeField] private float attackWindupTime = 0.3f;
     [SerializeField] private float attackLockTime = 0.7f;
     [SerializeField] private float hitboxActiveTime = 0.2f;
-    private float hitStunDuration = 1.1f;
+    [SerializeField] private float hitStunDuration = 1.1f;
     [SerializeField] private MobAttackHitbox attackHitbox;
 
     private float _lastAttackTime;

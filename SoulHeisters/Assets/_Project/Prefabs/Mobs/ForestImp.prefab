@@ -2526,6 +2526,7 @@ MonoBehaviour:
   attackWindupTime: 0.5
   attackLockTime: 0.7
   hitboxActiveTime: 0.2
+  hitStunDuration: 0.1
   attackHitbox: {fileID: 218207533954301196}
 --- !u!54 &2623552540716884796
 Rigidbody:
@@ -2632,7 +2633,23 @@ MonoBehaviour:
   m_Animator: {fileID: 8297959874738171716}
   TransitionStateInfoList: []
   AnimatorParameterEntries:
-    ParameterEntries: []
+    ParameterEntries:
+    - name: Attack
+      NameHash: 1080829965
+      Synchronize: 1
+      ParameterType: 9
+    - name: Hit
+      NameHash: 1654612129
+      Synchronize: 1
+      ParameterType: 9
+    - name: IsMoving
+      NameHash: 120489994
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsDead
+      NameHash: 1270110494
+      Synchronize: 1
+      ParameterType: 4
   AnimatorParametersExpanded: 0
   syncInterval: 0.1
 --- !u!114 &8068194278497068487
