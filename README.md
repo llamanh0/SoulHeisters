@@ -2,11 +2,13 @@
 Bu proje, Unity oyun motoru kullanılarak geliştirilen gerçek zamanlı çok oyunculu bir oyun altyapısı prototipidir. 
 ## Oynanış Videosu
 https://github.com/user-attachments/assets/9882836d-1364-4e34-8ba2-2e4082b3c41a
-## Kullanılan Teknolojiler
+###
+Oyunu https://llamanh.itch.io/soul-heisters adresinden indirip oynayabilirsiniz.
+## Teknolojiler
 - **Unity 6000.3.16f1 LTS**
 - **C#**
 - **Netcode for GameObjects**
-## Oyun İçi Kontroller
+## Kontroller
 | Tuş / Girdi | İşlev |
 |------------|-------|
 | **W / A / S / D** | Hareket |
